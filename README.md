@@ -4,7 +4,7 @@ A collaborative whiteboard and shared code canvas built as a PERN portfolio proj
 
 ## Current milestone
 
-The frontend now covers sign-in/sign-up, board listing and search, create/rename/delete, the editable canvas, local drafts, and a local invitation preview. Vite development defaults to a browser-local demo so these screens work before PostgreSQL is available. Set `VITE_DEMO_MODE=false` in `client/.env.local` and restart Vite to use the Express API for session and board metadata. In API mode, canvas content is still a per-board browser draft; it is not yet saved to PostgreSQL or shared live. Demo invitations do not send email. Live Yjs collaboration is not implemented yet.
+The frontend covers sign-in/sign-up, board listing/search, create/rename/delete, and the editable canvas. Vite development defaults to a browser-local demo so the UI works before PostgreSQL is available. Set `VITE_DEMO_MODE=false` in `client/.env.local` and restart Vite to use Express accounts/board metadata and Hocuspocus live document sync. The Express API issues signed collaboration tokens; Hocuspocus checks board membership, applies viewer read-only permissions, and persists Yjs snapshots. Demo invitations remain a local preview and do not send email. Real database-backed collaboration still needs a PostgreSQL smoke test.
 
 The system requirements and architecture are documented in [RADIO.md](RADIO.md).
 
@@ -23,7 +23,7 @@ Open the local URL printed by Vite. To verify the current client build:
 npm run build --prefix client
 ```
 
-Board content is currently stored in this browser's local storage. It is not shared between browsers or devices.
+In local demo mode, board content is stored in this browser's local storage. In API mode, board documents sync through the Hocuspocus WebSocket at `ws://localhost:1234` by default. Set `VITE_COLLAB_URL` for a deployed WebSocket endpoint.
 
 ## Run the API
 
@@ -39,7 +39,7 @@ npm run db:migrate --prefix server
 npm run dev --prefix server
 ```
 
-The API listens on `http://localhost:3001`; Vite proxies `/api` requests to it. Check readiness with `Invoke-RestMethod http://localhost:3001/api/health`. The database credentials in Compose are for local development only.
+The API listens on `http://localhost:3001` and Hocuspocus on `ws://localhost:1234`; Vite proxies `/api` requests to the API. Check readiness with `Invoke-RestMethod http://localhost:3001/api/health`. The database credentials in Compose are for local development only.
 
 Run backend checks with:
 
@@ -50,7 +50,6 @@ npm test --prefix server
 
 ## Next milestones
 
-1. Start PostgreSQL and exercise migrations, authentication, and board API flows end to end.
-2. Persist canvas documents in PostgreSQL and add Yjs/Hocuspocus live collaboration with WebSocket role checks.
-3. Verify simultaneous editing, reconnect recovery, and access enforcement against PostgreSQL.
-4. Add invitations, deployment, and architecture documentation.
+1. Start PostgreSQL and exercise migrations, authentication, board APIs, and Yjs snapshot persistence end to end.
+2. Verify two-browser simultaneous editing, reconnect recovery, and viewer enforcement against PostgreSQL.
+3. Add real invitations, cursor visualization, deployment, and architecture documentation.

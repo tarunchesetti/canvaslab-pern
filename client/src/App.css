@@ -186,6 +186,7 @@
 .board-status { display: flex; align-items: center; gap: 7px; color: #73766f; font-size: 10px; white-space: nowrap; }
 .board-status svg { color: #a1a399; }
 .status-pulse, .live-indicator, .green-dot, .footer-dot { width: 7px; height: 7px; border-radius: 50%; background: #8aaa7a; }
+.status-offline { background: #c7725c; }
 .status-divider { width: 1px; height: 15px; margin: 0 3px; background: #e5e6e1; }
 
 .board-canvas-wrap { position: relative; min-height: 350px; flex: 1; overflow: hidden; border-top: 1px solid #e7e8e2; background-color: #f5f5f1; }

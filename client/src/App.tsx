@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -25,7 +25,10 @@ import {
   Type,
   Users,
 } from 'lucide-react'
-import { ApiError, createBoard, deleteBoard, demoMode, getBoards, getCurrentUser, signIn, signOut, signUp, updateBoard, type Board, type User } from './api'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
+import { ApiError, createBoard, deleteBoard, demoMode, getBoards, getCollaborationToken, getCurrentUser, signIn, signOut, signUp, updateBoard, type Board, type User } from './api'
+import type * as Yjs from 'yjs'
+import type { CanvasDocumentNode } from './collaboration-state'
 import '@xyflow/react/dist/style.css'
 import './App.css'
 
@@ -37,6 +40,7 @@ type CanvasNode = Node<{
 }, 'note' | 'code' | 'text'>
 
 type DemoInvite = { email: string; role: 'editor' | 'viewer' }
+type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasNodeSignature' | 'readNodesFromDocument' | 'syncNodesToDocument'>
 
 const CodeEditor = lazy(() => import('./CodeEditor'))
 
@@ -95,6 +99,14 @@ function CodeCard({ id, data }: NodeProps<CanvasNode>) {
 }
 
 const nodeTypes = { note: NoteCard, code: CodeCard, text: TextCard }
+
+function toCanvasNodes(nodes: CanvasDocumentNode[], readOnly: boolean): CanvasNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    type: node.type as CanvasNode['type'],
+    data: { ...node.data, readOnly },
+  }))
+}
 
 const starterNodes: CanvasNode[] = [
   {
@@ -547,6 +559,18 @@ function BoardCanvas({
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const searchInput = useRef<HTMLInputElement>(null)
+  const [collaborationStatus, setCollaborationStatus] = useState<'demo' | 'connecting' | 'connected' | 'offline'>(demoMode ? 'demo' : 'connecting')
+  const [collaborationReady, setCollaborationReady] = useState(demoMode)
+  const [collaborationError, setCollaborationError] = useState('')
+  const [collaborators, setCollaborators] = useState<{ id: string; name: string; color: string }[]>([])
+  const documentRef = useRef<Yjs.Doc | null>(null)
+  const sharedNodesRef = useRef<Yjs.Map<Yjs.Map<unknown>> | null>(null)
+  const collaborationBridgeRef = useRef<CollaborationBridge | null>(null)
+  const remoteSignatureRef = useRef('')
+  const nodesRef = useRef(nodes)
+  useLayoutEffect(() => {
+    nodesRef.current = nodes
+  }, [nodes])
   const [demoInvites, setDemoInvites] = useState<DemoInvite[]>(() => {
     if (!demoMode) return [] as DemoInvite[]
     try {
@@ -556,6 +580,125 @@ function BoardCanvas({
       return [] as DemoInvite[]
     }
   })
+
+  useEffect(() => {
+    if (demoMode) return
+
+    let active = true
+    let document: Yjs.Doc | null = null
+    let sharedNodes: Yjs.Map<Yjs.Map<unknown>> | null = null
+    let provider: HocuspocusProvider | null = null
+    let stopObserving: (() => void) | null = null
+
+    async function connect() {
+      try {
+        const [providerModule, yjs, bridge] = await Promise.all([
+          import('@hocuspocus/provider'),
+          import('yjs'),
+          import('./collaboration-state'),
+        ])
+        if (!active) return
+
+        document = new yjs.Doc()
+        sharedNodes = document.getMap<Yjs.Map<unknown>>('nodes')
+        documentRef.current = document
+        sharedNodesRef.current = sharedNodes
+        collaborationBridgeRef.current = bridge
+
+        const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        const socketUrl = import.meta.env.VITE_COLLAB_URL || `${socketProtocol}//${window.location.hostname}:1234`
+        provider = new providerModule.HocuspocusProvider({
+          url: socketUrl,
+          name: board.id,
+          document,
+          token: getCollaborationToken,
+        })
+        provider.awareness?.setLocalStateField('user', {
+          id: user.id,
+          name: user.displayName,
+          color: '#c78569',
+        })
+
+        let documentSynced = false
+        function syncFromDocument() {
+          if (!sharedNodes) return
+          const loadedNodes = toCanvasNodes(bridge.readNodesFromDocument(sharedNodes), !canEdit)
+          remoteSignatureRef.current = bridge.canvasNodeSignature(loadedNodes)
+          setNodes(loadedNodes)
+        }
+
+        function handleDocumentChange() {
+          if (active && documentSynced) syncFromDocument()
+        }
+
+        sharedNodes.observeDeep(handleDocumentChange)
+        stopObserving = () => sharedNodes?.unobserveDeep(handleDocumentChange)
+        provider.on('status', ({ status }: { status: string }) => {
+          if (active) setCollaborationStatus(status === 'connected' ? 'connected' : status === 'connecting' ? 'connecting' : 'offline')
+        })
+        provider.on('synced', ({ state }: { state: boolean }) => {
+          if (!active || !state || !document || !sharedNodes) return
+          documentSynced = true
+          if (sharedNodes.size === 0 && canEdit) {
+            bridge.syncNodesToDocument(document, sharedNodes, nodesRef.current)
+          }
+          syncFromDocument()
+          setCollaborationReady(true)
+          setCollaborationStatus('connected')
+        })
+        provider.on('awarenessUpdate', ({ states }: { states: { clientId: number; user?: { id?: string; name?: string; color?: string } }[] }) => {
+          if (!active) return
+          const usersById = new Map<string, { id: string; name: string; color: string }>()
+          for (const state of states) {
+            const collaborator = state.user
+            if (!collaborator?.id || !collaborator.name) continue
+            usersById.set(collaborator.id, {
+              id: collaborator.id,
+              name: collaborator.name,
+              color: collaborator.color ?? '#93a17e',
+            })
+          }
+          setCollaborators([...usersById.values()])
+        })
+        provider.on('authenticationFailed', ({ reason }: { reason: string }) => {
+          if (!active) return
+          setCollaborationError(reason || 'Board access was denied.')
+          setCollaborationStatus('offline')
+        })
+      } catch (error) {
+        if (!active) return
+        setCollaborationError(error instanceof Error ? error.message : 'Could not connect to live collaboration.')
+        setCollaborationStatus('offline')
+      }
+    }
+
+    void connect()
+
+    return () => {
+      active = false
+      stopObserving?.()
+      provider?.destroy()
+      document?.destroy()
+      documentRef.current = null
+      sharedNodesRef.current = null
+      collaborationBridgeRef.current = null
+    }
+  }, [board.id, canEdit, setNodes, user.displayName, user.id])
+
+  useEffect(() => {
+    if (demoMode || !collaborationReady) return
+    const document = documentRef.current
+    const sharedNodes = sharedNodesRef.current
+    const bridge = collaborationBridgeRef.current
+    if (!document || !sharedNodes || !bridge) return
+
+    const signature = bridge.canvasNodeSignature(nodes)
+    if (signature === remoteSignatureRef.current) {
+      remoteSignatureRef.current = ''
+      return
+    }
+    bridge.syncNodesToDocument(document, sharedNodes, nodes)
+  }, [collaborationReady, nodes])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -691,7 +834,8 @@ function BoardCanvas({
         <header className="topbar">
           <div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
           <div className="topbar-actions">
-            <span className="local-badge">{demoMode ? 'LOCAL DEMO' : 'LOCAL DRAFT'}</span>
+            {!demoMode && collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
+            <span className="local-badge">{demoMode ? 'LOCAL DEMO' : collaborationStatus === 'connected' ? 'LIVE SYNC' : 'CONNECTING'}</span>
             <button className="button button-outline invite-button" disabled={!demoMode || !canEdit} title={demoMode ? 'Preview an invitation locally; no email will be sent' : 'Invitations are not available yet'} onClick={() => setShowInviteDialog(true)}><Users size={15} /> Invite</button>
             <button className="button button-dark" onClick={shareBoard}><Share2 size={15} /> {copied ? 'Copied' : 'Share'}</button>
           </div>
@@ -699,7 +843,7 @@ function BoardCanvas({
 
         <div className="board-heading">
           <div><div className="eyebrow"><span className="eyebrow-line" /> CANVAS BOARD <span className="heading-dot">·</span> {new Date(board.updated_at).toLocaleDateString()}</div><div className="board-title-line"><h1>{board.title}</h1><button className="title-chevron" aria-label="Board options" aria-expanded={showBoardMenu} onClick={() => setShowBoardMenu((visible) => !visible)}><ChevronDown size={16} /></button>{showBoardMenu && <div className="board-options-menu" role="menu">{canEdit && <button role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('rename') }}>Rename board</button>}{board.role === 'owner' && <button className="menu-danger" role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('delete') }}>Delete board</button>}</div>}</div><p>Shape the next version of how we think together.</p></div>
-          <div className="board-status"><span className="status-pulse" /> {canEdit ? 'Local only' : 'Read-only'} <span className="status-divider" /> <Activity size={14} /> {canEdit ? 'Changes saved on this device' : 'Viewing this board'}</div>
+          <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {demoMode ? 'Local demo' : collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {demoMode ? 'Changes stay in this browser' : collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
         <div className="board-canvas-wrap">

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { Router, type Request } from 'express'
 import type { Pool } from 'pg'
 import { requireAuth } from '../auth.js'
+import { createCollaborationToken } from '../collaboration-token.js'
 import { loginSchema, registerSchema } from '../validation.js'
 
 interface UserRow {
@@ -30,7 +31,7 @@ function publicUser(user: Pick<UserRow, 'id' | 'display_name' | 'email'>) {
   return { id: user.id, displayName: user.display_name, email: user.email }
 }
 
-export function createAuthRouter(pool: Pool): Router {
+export function createAuthRouter(pool: Pool, sessionSecret: string): Router {
   const router = Router()
 
   router.post('/register', async (request, response) => {
@@ -102,6 +103,11 @@ export function createAuthRouter(pool: Pool): Router {
       return
     }
     response.json({ user: publicUser(user) })
+  })
+
+  router.post('/collaboration-token', requireAuth, async (request, response) => {
+    const token = await createCollaborationToken(request.session.userId!, sessionSecret)
+    response.json({ token, expiresInSeconds: 300 })
   })
 
   return router

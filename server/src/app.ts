@@ -39,7 +39,7 @@ export function createApp(pool: Pool, configuration: Environment) {
       response.status(503).json({ status: 'error', database: 'unavailable' })
     }
   })
-  app.use('/api/auth', createAuthRouter(pool))
+  app.use('/api/auth', createAuthRouter(pool, configuration.SESSION_SECRET))
   app.use('/api/boards', createBoardsRouter(pool))
   app.use((_request, response) => response.status(404).json({ error: 'Not found' }))
 

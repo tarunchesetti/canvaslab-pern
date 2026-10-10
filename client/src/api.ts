@@ -164,6 +164,11 @@ export async function getBoards(): Promise<Board[]> {
   return (await request<BoardsResponse>('/boards')).boards
 }
 
+export async function getCollaborationToken(): Promise<string> {
+  if (demoMode) throw new ApiError('Live collaboration is disabled in local demo mode.', 501)
+  return (await request<{ token: string }>('/auth/collaboration-token', { method: 'POST' })).token
+}
+
 export async function createBoard(title: string): Promise<Board> {
   if (demoMode) {
     const user = getDemoUser()
