@@ -50,6 +50,7 @@ Represent each board as a Yjs document. Store canvas elements in a shared Yjs ma
 - `boards`: id, title, owner id, created/updated timestamps.
 - `board_members`: board id, user id, role, invitation/acceptance timestamps; unique `(board_id, user_id)`.
 - `board_documents`: board id, Yjs snapshot (`BYTEA`), document version, updated timestamp.
+- `user_sessions`: opaque session id, serialized session data, expiry timestamp.
 
 Use foreign keys and cascading cleanup deliberately. Index `board_members(user_id, board_id)` for a user's board list and `boards(owner_id, updated_at)` for owner views. Document contents are not duplicated into relational rows; board metadata and access rules remain queryable in PostgreSQL, while Yjs owns collaborative canvas state.
 
@@ -75,13 +76,13 @@ Deploy the client and Node service over HTTPS/WSS with a managed PostgreSQL data
 ## Build Sequence
 
 1. Confirm the MVP boundaries and the choice to defer code execution.
-2. Scaffold the React client and Express/TypeScript API as npm workspaces.
-3. Add PostgreSQL migrations for users, boards, memberships, and document snapshots.
-4. Implement registration/login, board listing/creation, and role enforcement.
-5. Add the Yjs/Hocuspocus connection and PostgreSQL snapshot persistence.
-6. Build one vertical slice: create a board, add a sticky note, and see it update in a second browser session.
-7. Add shared CodeMirror blocks, invitations, viewer mode, reconnect behavior, and tests.
-8. Polish responsive/accessibility states, document architecture and tradeoffs, then deploy and publish.
+2. Scaffold the React client and Express/TypeScript API.
+3. Add PostgreSQL migrations, registration/login, board metadata routes, and role enforcement.
+4. Connect the React client to authentication and board metadata endpoints.
+5. Add Yjs/Hocuspocus collaboration, PostgreSQL snapshot persistence, and WebSocket role checks.
+6. Build one verified vertical slice: create a board, add a sticky note, and see it update in a second browser session.
+7. Add invitations, reconnect recovery, and end-to-end tests.
+8. Polish responsive/accessibility states, document architecture and tradeoffs, then deploy.
 
 ## Interview Story
 
