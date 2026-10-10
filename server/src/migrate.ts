@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { pool } from './db.js'
 
 async function migrate() {
@@ -10,15 +10,20 @@ async function migrate() {
       applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`)
 
-    const version = '001_initial'
-    const applied = await client.query('SELECT 1 FROM schema_migrations WHERE version = $1', [version])
-    if (applied.rowCount === 0) {
-      const migration = await readFile(new URL('../migrations/001_initial.sql', import.meta.url), 'utf8')
+    const migrationDirectory = new URL('../migrations/', import.meta.url)
+    const migrationFiles = (await readdir(migrationDirectory))
+      .filter((file) => /^\d+_[a-z0-9_-]+\.sql$/i.test(file))
+      .sort()
+
+    for (const migrationFile of migrationFiles) {
+      const version = migrationFile.replace(/\.sql$/i, '')
+      const applied = await client.query('SELECT 1 FROM schema_migrations WHERE version = $1', [version])
+      if (applied.rowCount !== 0) continue
+
+      const migration = await readFile(new URL(migrationFile, migrationDirectory), 'utf8')
       await client.query(migration)
       await client.query('INSERT INTO schema_migrations (version) VALUES ($1)', [version])
       console.log(`Applied migration ${version}`)
-    } else {
-      console.log('Database schema is up to date')
     }
 
     await client.query('COMMIT')

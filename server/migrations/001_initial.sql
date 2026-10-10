@@ -30,7 +30,7 @@ CREATE INDEX board_members_user_board_idx ON board_members (user_id, board_id);
 
 CREATE TABLE board_documents (
   board_id UUID PRIMARY KEY REFERENCES boards(id) ON DELETE CASCADE,
-  snapshot BYTEA NOT NULL DEFAULT decode('', 'hex'),
+  snapshot BYTEA NOT NULL DEFAULT decode('0000', 'hex'),
   version BIGINT NOT NULL DEFAULT 0 CHECK (version >= 0),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

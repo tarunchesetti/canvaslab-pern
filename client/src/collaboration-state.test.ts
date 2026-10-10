@@ -10,6 +10,15 @@ const initialNode: CanvasDocumentNode = {
   data: { title: 'Shared idea', text: 'idea' },
 }
 
+test('an empty board has a valid Yjs snapshot', () => {
+  const source = new Y.Doc()
+  const snapshot = Y.encodeStateAsUpdate(source)
+  const restored = new Y.Doc()
+
+  assert.doesNotThrow(() => Y.applyUpdate(restored, snapshot))
+  assert.equal(restored.getMap('nodes').size, 0)
+})
+
 test('concurrent text insertions merge and node properties round-trip', () => {
   const firstDocument = new Y.Doc()
   const firstNodes = firstDocument.getMap<Y.Map<unknown>>('nodes')
