@@ -27,13 +27,32 @@ Board documents sync through the Hocuspocus WebSocket at `ws://localhost:1234` b
 
 ## Run the API
 
-Requirements: Node.js 20.19+ or 22.12+ and Docker Desktop for PostgreSQL.
+Requirements: Node.js 20.19+ or 22.12+ and either Docker Desktop or a hosted PostgreSQL database (for example Neon or Supabase). The migration runner uses the Node `pg` driver; `psql` is not required.
+
+### Option A: Local PostgreSQL with Docker
 
 ```powershell
 docker compose up -d db
 Copy-Item server/.env.example server/.env
 npm install --prefix server
 npm run db:migrate --prefix server
+```
+
+### Option B: Hosted PostgreSQL
+
+Create a PostgreSQL project with your provider, then copy its connection URL. In `server/.env`, set `DATABASE_URL` to that URL (including `sslmode=require` if the provider requires SSL) and replace `SESSION_SECRET` with a private random value of at least 32 characters. Do not commit `server/.env` or share the database URL.
+
+```powershell
+Copy-Item server/.env.example server/.env
+npm install --prefix server
+npm run db:migrate --prefix server
+```
+
+### Start the API
+
+After either database option is ready, run:
+
+```powershell
 npm run dev --prefix server
 ```
 
