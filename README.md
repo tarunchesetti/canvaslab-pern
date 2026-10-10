@@ -4,30 +4,28 @@ A collaborative whiteboard and shared code canvas built as a PERN portfolio proj
 
 ## Current milestone
 
-The frontend covers sign-in/sign-up, board listing/search, create/rename/delete, and the editable canvas. Vite development defaults to a browser-local demo so the UI works before PostgreSQL is available; its Product jam board and sample notes/code are intentional fixtures. Set `VITE_DEMO_MODE=false` in `client/.env.local` and restart Vite to use Express accounts/board metadata and Hocuspocus live document sync. API mode does not seed those fixtures: boards and document content come from PostgreSQL. The Express API issues signed collaboration tokens; Hocuspocus checks board membership, applies viewer read-only permissions, and persists Yjs snapshots. Demo invitations remain a local preview and do not send email. Real database-backed collaboration still needs a PostgreSQL smoke test.
+The frontend uses Express for authentication and board metadata, and Hocuspocus/Yjs for live canvas synchronization. Boards and documents are stored in PostgreSQL. Board editing stays disabled until the shared document syncs. Invitations are not implemented yet.
 
 The system requirements and architecture are documented in [RADIO.md](RADIO.md).
 
 ## Run the client
 
-Requirements: Node.js 20.19+ or 22.12+. The local demo runs without PostgreSQL. API mode requires the API and PostgreSQL to be running.
+Requirements: Node.js 20.19+ or 22.12+ and the API/PostgreSQL started as described below. There is no demo account or local-data fallback.
 
 ```powershell
 npm install --prefix client
 npm run dev --prefix client
 ```
 
-Open the local URL printed by Vite. To verify the current client build:
+Open the local URL printed by Vite after the API is running in a second terminal. Without the API/database, sign-in shows a connection error and the board editor remains unavailable. To verify the current client build:
 
 ```powershell
 npm run build --prefix client
 ```
 
-In local demo mode, board content is stored in this browser's local storage. In API mode, board documents sync through the Hocuspocus WebSocket at `ws://localhost:1234` by default. Set `VITE_COLLAB_URL` for a deployed WebSocket endpoint.
+Board documents sync through the Hocuspocus WebSocket at `ws://localhost:1234` by default. Set `VITE_COLLAB_URL` for a deployed WebSocket endpoint.
 
 ## Run the API
-
-To use real accounts and server-backed board metadata, set `VITE_DEMO_MODE=false` in `client/.env.local`, then restart the client after starting the API below.
 
 Requirements: Node.js 20.19+ or 22.12+ and Docker Desktop for PostgreSQL.
 

@@ -26,7 +26,7 @@ import {
   Users,
 } from 'lucide-react'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
-import { ApiError, createBoard, deleteBoard, demoMode, getBoards, getCollaborationToken, getCurrentUser, signIn, signOut, signUp, updateBoard, type Board, type User } from './api'
+import { ApiError, createBoard, deleteBoard, getBoards, getCollaborationToken, getCurrentUser, signIn, signOut, signUp, updateBoard, type Board, type User } from './api'
 import type * as Yjs from 'yjs'
 import type { CanvasDocumentNode } from './collaboration-state'
 import '@xyflow/react/dist/style.css'
@@ -39,7 +39,6 @@ type CanvasNode = Node<{
   readOnly?: boolean
 }, 'note' | 'code' | 'text'>
 
-type DemoInvite = { email: string; role: 'editor' | 'viewer' }
 type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasNodeSignature' | 'readNodesFromDocument' | 'syncNodesToDocument'>
 
 const CodeEditor = lazy(() => import('./CodeEditor'))
@@ -93,7 +92,7 @@ function CodeCard({ id, data }: NodeProps<CanvasNode>) {
       <Suspense fallback={<div className="editor-loading">Opening editor…</div>}>
         <CodeEditor value={data.text} readOnly={data.readOnly} onChange={(value) => updateNodeData(id, { text: value })} />
       </Suspense>
-      <div className="code-footer"><span><span className="green-dot" /> TypeScript</span><span>LOCAL DRAFT</span></div>
+      <div className="code-footer"><span><span className="green-dot" /> TypeScript</span><span>SHARED TEXT</span></div>
     </article>
   )
 }
@@ -106,46 +105,6 @@ function toCanvasNodes(nodes: CanvasDocumentNode[], readOnly: boolean): CanvasNo
     type: node.type as CanvasNode['type'],
     data: { ...node.data, readOnly },
   }))
-}
-
-const starterNodes: CanvasNode[] = [
-  {
-    id: 'idea-1',
-    type: 'note',
-    position: { x: 110, y: 115 },
-    data: { title: 'The problem', text: 'How might a remote team sketch ideas together without losing the thread?', tone: 'note-lemon' },
-  },
-  {
-    id: 'idea-2',
-    type: 'note',
-    position: { x: 455, y: 365 },
-    data: { title: 'One shared space', text: 'Canvas, notes and small code experiments, all moving at the same time.', tone: 'note-coral' },
-  },
-  {
-    id: 'idea-3',
-    type: 'note',
-    position: { x: 745, y: 105 },
-    data: { title: 'The interesting bit', text: 'Two people edit the same block. Both changes survive.', tone: 'note-mint' },
-  },
-  {
-    id: 'code-1',
-    type: 'code',
-    position: { x: 820, y: 390 },
-    data: { title: 'merge-strategy.ts', text: 'const board = createDocument()\n\nboard.on("change", (update) => {\n  persist(update)\n})' },
-  },
-]
-
-function getInitialNodes(boardId: string, readOnly: boolean): CanvasNode[] {
-  const savedBoard = localStorage.getItem(`canvaslab:board:${boardId}`)
-  if (!savedBoard) return demoMode ? starterNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } })) : []
-
-  try {
-    const parsedBoard: unknown = JSON.parse(savedBoard)
-    const boardNodes = Array.isArray(parsedBoard) ? parsedBoard as CanvasNode[] : demoMode ? starterNodes : []
-    return boardNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } }))
-  } catch {
-    return demoMode ? starterNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } })) : []
-  }
 }
 
 function App() {
@@ -200,18 +159,6 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
     }
   }
 
-  async function openDemoWorkspace() {
-    setSubmitting(true)
-    setError('')
-    try {
-      onAuthenticated(await signIn('demo@canvaslab.local', 'canvaslab-demo-password'))
-    } catch (demoError) {
-      setError(demoError instanceof Error ? demoError.message : 'Could not open the demo workspace.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
     <main className="auth-page">
       <div className="auth-side">
@@ -240,8 +187,6 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
             <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError('') }}>Sign in</button>
             <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError('') }}>Create account</button>
           </div>
-          {demoMode && <div className="demo-notice"><span className="demo-notice-dot" /> LOCAL DEMO <span>Changes stay in this browser</span></div>}
-          {demoMode && <button className="demo-open-button" type="button" onClick={() => void openDemoWorkspace()} disabled={submitting}>Open demo workspace <ArrowRight size={15} /></button>}
           <form className="auth-form" onSubmit={handleSubmit}>
             {mode === 'register' && <label>Name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={80} placeholder="How should we call you?" /></label>}
             <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>
@@ -252,7 +197,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
               {submitting ? <LoaderCircle className="loading-icon" size={16} /> : <ArrowRight size={16} />}
             </button>
           </form>
-          <div className="auth-security">{demoMode ? 'Demo data is stored only in this browser.' : 'Your boards are private until you invite someone.'}</div>
+          <div className="auth-security">Your boards are private to your account.</div>
         </div>
         <div className="auth-panel-footer"><span>CANVASLAB 0.1</span><span>BUILT FOR BETTER BRAINSTORMS</span></div>
       </section>
@@ -421,7 +366,7 @@ function CreateBoardDialog({ onClose, onCreate, busy }: { onClose: () => void; o
       <section className="create-dialog" role="dialog" aria-modal="true" aria-labelledby="create-board-title">
         <button className="dialog-close" aria-label="Close" onClick={onClose}>×</button>
         <div className="state-mark"><Plus size={19} /></div><p className="auth-kicker">NEW BOARD</p><h2 id="create-board-title">Start with a name.</h2><p className="auth-subtitle">You can change it whenever the idea evolves.</p>
-        <form className="auth-form" onSubmit={handleSubmit}><label>Board name<input autoFocus autoComplete="off" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={120} placeholder="e.g. Product jam" /></label>{error && <div className="auth-error" role="alert">{error}</div>}<button className="auth-submit" disabled={busy || !title.trim()}>{busy ? 'Creating…' : 'Create board'}<ArrowRight size={16} /></button></form>
+        <form className="auth-form" onSubmit={handleSubmit}><label>Board name<input autoFocus autoComplete="off" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={120} placeholder="e.g. Planning workshop" /></label>{error && <div className="auth-error" role="alert">{error}</div>}<button className="auth-submit" disabled={busy || !title.trim()}>{busy ? 'Creating…' : 'Create board'}<ArrowRight size={16} /></button></form>
       </section>
     </div>
   )
@@ -492,41 +437,7 @@ function BoardActionDialog({
         <h2 id="board-action-title">{mode === 'rename' ? 'Rename this board.' : 'Delete this board?'}</h2>
         {mode === 'rename'
           ? <form className="auth-form board-action-form" onSubmit={handleSubmit}><label>Board name<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={120} /></label><button className="auth-submit" disabled={busy || !title.trim()}>{busy ? 'Saving…' : 'Save name'}<ArrowRight size={16} /></button></form>
-          : <><p className="auth-subtitle">“{board.title}” and its saved canvas draft will be removed. This can’t be undone.</p><div className="state-actions"><button className="button button-outline" onClick={onClose}>Keep board</button><button className="danger-button" onClick={onDelete} disabled={busy}>{busy ? 'Deleting…' : 'Delete board'}</button></div></>}
-      </section>
-    </div>
-  )
-}
-
-function InviteDialog({
-  boardTitle,
-  invitedEmails,
-  onInvite,
-  onClose,
-}: {
-  boardTitle: string
-  invitedEmails: DemoInvite[]
-  onInvite: (email: string, role: 'editor' | 'viewer') => void
-  onClose: () => void
-}) {
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'editor' | 'viewer'>('editor')
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!email.trim()) return
-    onInvite(email, role)
-    setEmail('')
-  }
-
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-      <section className="create-dialog invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title">
-        <button className="dialog-close" aria-label="Close" onClick={onClose}>×</button>
-        <div className="state-mark"><Users size={18} /></div><p className="auth-kicker">BOARD ACCESS</p><h2 id="invite-title">Bring someone in.</h2><p className="auth-subtitle">Invite preview for “{boardTitle}”.</p>
-        <div className="demo-warning"><span className="demo-notice-dot" /> Demo only. No email is sent.</div>
-        <form className="auth-form invite-form" onSubmit={handleSubmit}><label>Email address<input type="email" autoFocus value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="teammate@example.com" /></label><label>Access<select value={role} onChange={(event) => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></label><button className="auth-submit" disabled={!email.trim()}>Add preview member<ArrowRight size={16} /></button></form>
-        {invitedEmails.length > 0 && <div className="invite-preview-list"><span className="auth-kicker">PREVIEW MEMBERS</span>{invitedEmails.map((invite) => <div className="invite-preview-row" key={invite.email}><span className="presence-avatar avatar-blue">{invite.email.slice(0, 1).toUpperCase()}</span><span>{invite.email}</span><small>{invite.role}</small></div>)}</div>}
+          : <><p className="auth-subtitle">“{board.title}” and its shared canvas document will be removed. This can’t be undone.</p><div className="state-actions"><button className="button button-outline" onClick={onClose}>Keep board</button><button className="danger-button" onClick={onDelete} disabled={busy}>{busy ? 'Deleting…' : 'Delete board'}</button></div></>}
       </section>
     </div>
   )
@@ -552,16 +463,16 @@ function BoardCanvas({
   onLogout: () => void
 }) {
   const canEdit = board.role !== 'viewer'
-  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(getInitialNodes(board.id, !canEdit))
+  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([])
   const [activeTool, setActiveTool] = useState('select')
   const [copied, setCopied] = useState(false)
   const [showBoardMenu, setShowBoardMenu] = useState(false)
-  const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const searchInput = useRef<HTMLInputElement>(null)
-  const [collaborationStatus, setCollaborationStatus] = useState<'demo' | 'connecting' | 'connected' | 'offline'>(demoMode ? 'demo' : 'connecting')
-  const [collaborationReady, setCollaborationReady] = useState(demoMode)
+  const [collaborationStatus, setCollaborationStatus] = useState<'connecting' | 'connected' | 'offline'>('connecting')
+  const [collaborationReady, setCollaborationReady] = useState(false)
   const [collaborationError, setCollaborationError] = useState('')
+  const canInteract = canEdit && collaborationReady
   const [collaborators, setCollaborators] = useState<{ id: string; name: string; color: string }[]>([])
   const documentRef = useRef<Yjs.Doc | null>(null)
   const sharedNodesRef = useRef<Yjs.Map<Yjs.Map<unknown>> | null>(null)
@@ -571,19 +482,8 @@ function BoardCanvas({
   useLayoutEffect(() => {
     nodesRef.current = nodes
   }, [nodes])
-  const [demoInvites, setDemoInvites] = useState<DemoInvite[]>(() => {
-    if (!demoMode) return [] as DemoInvite[]
-    try {
-      const storedInvites = localStorage.getItem(`canvaslab:board:${board.id}:invites`)
-      return storedInvites ? JSON.parse(storedInvites) as DemoInvite[] : [] as DemoInvite[]
-    } catch {
-      return [] as DemoInvite[]
-    }
-  })
 
   useEffect(() => {
-    if (demoMode) return
-
     let active = true
     let document: Yjs.Doc | null = null
     let sharedNodes: Yjs.Map<Yjs.Map<unknown>> | null = null
@@ -686,7 +586,7 @@ function BoardCanvas({
   }, [board.id, canEdit, setNodes, user.displayName, user.id])
 
   useEffect(() => {
-    if (demoMode || !collaborationReady) return
+    if (!collaborationReady || !canEdit) return
     const document = documentRef.current
     const sharedNodes = sharedNodesRef.current
     const bridge = collaborationBridgeRef.current
@@ -698,19 +598,7 @@ function BoardCanvas({
       return
     }
     bridge.syncNodesToDocument(document, sharedNodes, nodes)
-  }, [collaborationReady, nodes])
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      localStorage.setItem(`canvaslab:board:${board.id}`, JSON.stringify(nodes.map(({ selected: _selected, ...node }) => node)))
-    }, 250)
-
-    return () => window.clearTimeout(timeout)
-  }, [board.id, nodes])
-
-  useEffect(() => {
-    if (demoMode) localStorage.setItem(`canvaslab:board:${board.id}:invites`, JSON.stringify(demoInvites))
-  }, [board.id, demoInvites])
+  }, [board.id, canEdit, collaborationReady, nodes])
 
   useEffect(() => {
     function handleSearchShortcut(event: KeyboardEvent) {
@@ -795,11 +683,6 @@ function BoardCanvas({
     })))
   }
 
-  function addDemoInvite(email: string, role: 'editor' | 'viewer') {
-    const normalizedEmail = email.trim().toLowerCase()
-    setDemoInvites((currentInvites) => [...currentInvites.filter((invite) => invite.email !== normalizedEmail), { email: normalizedEmail, role }])
-  }
-
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -834,31 +717,30 @@ function BoardCanvas({
         <header className="topbar">
           <div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
           <div className="topbar-actions">
-            {!demoMode && collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
-            <span className="local-badge">{demoMode ? 'LOCAL DEMO' : collaborationStatus === 'connected' ? 'LIVE SYNC' : 'CONNECTING'}</span>
-            <button className="button button-outline invite-button" disabled={!demoMode || !canEdit} title={demoMode ? 'Preview an invitation locally; no email will be sent' : 'Invitations are not available yet'} onClick={() => setShowInviteDialog(true)}><Users size={15} /> Invite</button>
+            {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
+            <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
             <button className="button button-dark" onClick={shareBoard}><Share2 size={15} /> {copied ? 'Copied' : 'Share'}</button>
           </div>
         </header>
 
         <div className="board-heading">
           <div><div className="eyebrow"><span className="eyebrow-line" /> CANVAS BOARD <span className="heading-dot">·</span> {new Date(board.updated_at).toLocaleDateString()}</div><div className="board-title-line"><h1>{board.title}</h1><button className="title-chevron" aria-label="Board options" aria-expanded={showBoardMenu} onClick={() => setShowBoardMenu((visible) => !visible)}><ChevronDown size={16} /></button>{showBoardMenu && <div className="board-options-menu" role="menu">{canEdit && <button role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('rename') }}>Rename board</button>}{board.role === 'owner' && <button className="menu-danger" role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('delete') }}>Delete board</button>}</div>}</div><p>Shape the next version of how we think together.</p></div>
-          <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {demoMode ? 'Local demo' : collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {demoMode ? 'Changes stay in this browser' : collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
+          <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
         <div className="board-canvas-wrap">
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <span className="tool-divider" />
-            <button className={`tool-button ${activeTool === 'note' ? 'tool-selected' : ''}`} disabled={!canEdit} title="Add sticky note" aria-label="Add sticky note" onClick={() => { setActiveTool('note'); addNode('note') }}><StickyNote size={17} /></button>
-            <button className={`tool-button ${activeTool === 'text' ? 'tool-selected' : ''}`} disabled={!canEdit} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
-            <button className={`tool-button ${activeTool === 'code' ? 'tool-selected' : ''}`} disabled={!canEdit} title="Add code block" aria-label="Add code block" onClick={() => { setActiveTool('code'); addNode('code') }}><Code2 size={17} /></button>
+            <button className={`tool-button ${activeTool === 'note' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Add sticky note" aria-label="Add sticky note" onClick={() => { setActiveTool('note'); addNode('note') }}><StickyNote size={17} /></button>
+            <button className={`tool-button ${activeTool === 'text' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
+            <button className={`tool-button ${activeTool === 'code' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Add code block" aria-label="Add code block" onClick={() => { setActiveTool('code'); addNode('code') }}><Code2 size={17} /></button>
             <span className="tool-divider" />
             <button className="tool-button" disabled title="More canvas tools are coming later" aria-label="More canvas tools"><Plus size={17} /></button>
           </div>
 
           <label className="canvas-search"><Search size={15} /><input ref={searchInput} aria-label="Find on canvas" placeholder="Find on canvas" value={searchQuery} onChange={(event) => searchCanvas(event.target.value)} /><kbd>Ctrl K</kbd></label>
-          <div className="canvas-live"><span className="live-indicator" /><span>Solo board</span></div>
+          <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
           <ReactFlow
             nodes={nodes}
             edges={[]}
@@ -868,21 +750,19 @@ function BoardCanvas({
             fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
             minZoom={0.35}
             maxZoom={1.4}
-            nodesDraggable={canEdit}
+            nodesDraggable={canInteract}
             nodesConnectable={false}
             elementsSelectable
-            deleteKeyCode={canEdit ? ['Backspace', 'Delete'] : null}
+            deleteKeyCode={canInteract ? ['Backspace', 'Delete'] : null}
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#d8d9d5" />
             <Controls position="bottom-right" showInteractive={false} />
           </ReactFlow>
           <div className="canvas-hint"><MousePointer2 size={13} /> Drag anything to make room for a new idea</div>
-          <div className="minimap-preview"><div className="mini-note mini-one" /><div className="mini-note mini-two" /><div className="mini-note mini-three" /><div className="mini-code" /></div>
         </div>
 
-        <footer className="workspace-footer"><span><span className="footer-dot" /> Board ready</span><span>100%</span><span className="footer-separator" /><span>{nodes.length} objects</span><button className="footer-shortcut" onClick={onCreateBoard}><FilePlus2 size={13} /> New board</button></footer>
+        <footer className="workspace-footer"><span><span className={`footer-dot ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationReady ? 'Document synced' : collaborationStatus === 'offline' ? 'Sync unavailable' : 'Syncing document'}</span><span>100%</span><span className="footer-separator" /><span>{nodes.length} objects</span><button className="footer-shortcut" onClick={onCreateBoard}><FilePlus2 size={13} /> New board</button></footer>
       </section>
-      {showInviteDialog && <InviteDialog boardTitle={board.title} invitedEmails={demoInvites} onInvite={addDemoInvite} onClose={() => setShowInviteDialog(false)} />}
     </main>
   )
 }
