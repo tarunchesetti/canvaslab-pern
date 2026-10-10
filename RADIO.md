@@ -75,10 +75,10 @@ Deploy the client and Node service over HTTPS/WSS with a managed PostgreSQL data
 
 ## Build Sequence
 
-1. Confirm the MVP boundaries and the choice to defer code execution.
-2. Scaffold the React client and Express/TypeScript API.
-3. Add PostgreSQL migrations, registration/login, board metadata routes, and role enforcement.
-4. Connect the React client to authentication and board metadata endpoints.
+1. Confirm the MVP boundaries and the choice to defer code execution. (complete)
+2. Scaffold the React client and Express/TypeScript API. (complete)
+3. Add PostgreSQL migrations, registration/login, board metadata routes, and role enforcement. (implemented; database smoke test pending)
+4. Connect the React client to authentication and board metadata endpoints. (implemented; database smoke test pending)
 5. Add Yjs/Hocuspocus collaboration, PostgreSQL snapshot persistence, and WebSocket role checks.
 6. Build one verified vertical slice: create a board, add a sticky note, and see it update in a second browser session.
 7. Add invitations, reconnect recovery, and end-to-end tests.

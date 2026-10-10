@@ -4,13 +4,13 @@ A collaborative whiteboard and shared code canvas built as a PERN portfolio proj
 
 ## Current milestone
 
-The React board prototype supports draggable canvas objects, editable sticky notes and TypeScript blocks, local autosave, and responsive canvas controls. The Express API now has PostgreSQL migrations, cookie-session registration/login, and role-checked board metadata endpoints. The React client is not connected to those endpoints yet; canvas content is still local to the browser. Live Yjs collaboration and invitations are not implemented yet.
+The React client now uses the Express API for session restoration, registration/login, and board listing/creation. Board metadata and roles are stored in PostgreSQL. Canvas content is still a per-board browser draft; it is not yet saved to PostgreSQL or shared live. Invitations and Yjs collaboration are not implemented yet.
 
-The architecture and implementation sequence are documented in [RADIO.md](RADIO.md).
+The system requirements and architecture are documented in [RADIO.md](RADIO.md).
 
 ## Run the client
 
-Requirements: Node.js 20.19+ or 22.12+.
+Requirements: Node.js 20.19+ or 22.12+. Login and board management also require the API and PostgreSQL to be running.
 
 ```powershell
 npm install --prefix client
@@ -27,7 +27,7 @@ Board content is currently stored in this browser's local storage. It is not sha
 
 ## Run the API
 
-Requirements: Docker Desktop, Node.js 20.19+ or 22.12+.
+Requirements: Node.js 20.19+ or 22.12+ and Docker Desktop for PostgreSQL.
 
 ```powershell
 docker compose up -d db
@@ -37,7 +37,7 @@ npm run db:migrate --prefix server
 npm run dev --prefix server
 ```
 
-The API listens on `http://localhost:3001`. Check readiness with `Invoke-RestMethod http://localhost:3001/api/health`. The database credentials in Compose are for local development only.
+The API listens on `http://localhost:3001`; Vite proxies `/api` requests to it. Check readiness with `Invoke-RestMethod http://localhost:3001/api/health`. The database credentials in Compose are for local development only.
 
 Run backend checks with:
 
@@ -48,8 +48,7 @@ npm test --prefix server
 
 ## Next milestones
 
-1. Start PostgreSQL and run the initial migration.
-2. Connect React authentication and board-list/create/update flows to the API.
-3. Add Yjs/Hocuspocus collaboration with PostgreSQL-backed document persistence and WebSocket role checks.
-4. Verify simultaneous editing, reconnect recovery, and access enforcement against PostgreSQL.
-5. Add invitations, deployment, and architecture documentation.
+1. Start PostgreSQL and exercise migrations, authentication, and board API flows end to end.
+2. Persist canvas documents in PostgreSQL and add Yjs/Hocuspocus live collaboration with WebSocket role checks.
+3. Verify simultaneous editing, reconnect recovery, and access enforcement against PostgreSQL.
+4. Add invitations, deployment, and architecture documentation.
