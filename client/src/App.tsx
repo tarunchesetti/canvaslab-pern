@@ -137,14 +137,14 @@ const starterNodes: CanvasNode[] = [
 
 function getInitialNodes(boardId: string, readOnly: boolean): CanvasNode[] {
   const savedBoard = localStorage.getItem(`canvaslab:board:${boardId}`)
-  if (!savedBoard) return starterNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } }))
+  if (!savedBoard) return demoMode ? starterNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } })) : []
 
   try {
     const parsedBoard: unknown = JSON.parse(savedBoard)
-    const boardNodes = Array.isArray(parsedBoard) ? parsedBoard as CanvasNode[] : starterNodes
+    const boardNodes = Array.isArray(parsedBoard) ? parsedBoard as CanvasNode[] : demoMode ? starterNodes : []
     return boardNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } }))
   } catch {
-    return starterNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } }))
+    return demoMode ? starterNodes.map((node) => ({ ...node, data: { ...node.data, readOnly } })) : []
   }
 }
 

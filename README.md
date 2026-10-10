@@ -4,7 +4,7 @@ A collaborative whiteboard and shared code canvas built as a PERN portfolio proj
 
 ## Current milestone
 
-The frontend covers sign-in/sign-up, board listing/search, create/rename/delete, and the editable canvas. Vite development defaults to a browser-local demo so the UI works before PostgreSQL is available. Set `VITE_DEMO_MODE=false` in `client/.env.local` and restart Vite to use Express accounts/board metadata and Hocuspocus live document sync. The Express API issues signed collaboration tokens; Hocuspocus checks board membership, applies viewer read-only permissions, and persists Yjs snapshots. Demo invitations remain a local preview and do not send email. Real database-backed collaboration still needs a PostgreSQL smoke test.
+The frontend covers sign-in/sign-up, board listing/search, create/rename/delete, and the editable canvas. Vite development defaults to a browser-local demo so the UI works before PostgreSQL is available; its Product jam board and sample notes/code are intentional fixtures. Set `VITE_DEMO_MODE=false` in `client/.env.local` and restart Vite to use Express accounts/board metadata and Hocuspocus live document sync. API mode does not seed those fixtures: boards and document content come from PostgreSQL. The Express API issues signed collaboration tokens; Hocuspocus checks board membership, applies viewer read-only permissions, and persists Yjs snapshots. Demo invitations remain a local preview and do not send email. Real database-backed collaboration still needs a PostgreSQL smoke test.
 
 The system requirements and architecture are documented in [RADIO.md](RADIO.md).
 
