@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -25,7 +25,7 @@ import {
   Type,
   Users,
 } from 'lucide-react'
-import { ApiError, createBoard, getBoards, getCurrentUser, signIn, signOut, signUp, type Board, type User } from './api'
+import { ApiError, createBoard, deleteBoard, demoMode, getBoards, getCurrentUser, signIn, signOut, signUp, updateBoard, type Board, type User } from './api'
 import '@xyflow/react/dist/style.css'
 import './App.css'
 
@@ -35,6 +35,8 @@ type CanvasNode = Node<{
   tone?: string
   readOnly?: boolean
 }, 'note' | 'code' | 'text'>
+
+type DemoInvite = { email: string; role: 'editor' | 'viewer' }
 
 const CodeEditor = lazy(() => import('./CodeEditor'))
 
@@ -186,6 +188,18 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
     }
   }
 
+  async function openDemoWorkspace() {
+    setSubmitting(true)
+    setError('')
+    try {
+      onAuthenticated(await signIn('demo@canvaslab.local', 'canvaslab-demo-password'))
+    } catch (demoError) {
+      setError(demoError instanceof Error ? demoError.message : 'Could not open the demo workspace.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <main className="auth-page">
       <div className="auth-side">
@@ -214,6 +228,8 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
             <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError('') }}>Sign in</button>
             <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError('') }}>Create account</button>
           </div>
+          {demoMode && <div className="demo-notice"><span className="demo-notice-dot" /> LOCAL DEMO <span>Changes stay in this browser</span></div>}
+          {demoMode && <button className="demo-open-button" type="button" onClick={() => void openDemoWorkspace()} disabled={submitting}>Open demo workspace <ArrowRight size={15} /></button>}
           <form className="auth-form" onSubmit={handleSubmit}>
             {mode === 'register' && <label>Name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={80} placeholder="How should we call you?" /></label>}
             <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>
@@ -224,7 +240,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
               {submitting ? <LoaderCircle className="loading-icon" size={16} /> : <ArrowRight size={16} />}
             </button>
           </form>
-          <div className="auth-security">Your boards are private until you invite someone.</div>
+          <div className="auth-security">{demoMode ? 'Demo data is stored only in this browser.' : 'Your boards are private until you invite someone.'}</div>
         </div>
         <div className="auth-panel-footer"><span>CANVASLAB 0.1</span><span>BUILT FOR BETTER BRAINSTORMS</span></div>
       </section>
@@ -239,6 +255,10 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
   const [error, setError] = useState('')
   const [showCreateBoard, setShowCreateBoard] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [showBoardList, setShowBoardList] = useState(false)
+  const [boardListFilter, setBoardListFilter] = useState<'all' | 'shared'>('all')
+  const [boardAction, setBoardAction] = useState<'rename' | 'delete' | null>(null)
+  const [updatingBoard, setUpdatingBoard] = useState(false)
 
   async function loadBoards(showLoading = false) {
     if (showLoading) {
@@ -308,6 +328,39 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
     }
   }
 
+  async function handleRenameBoard(title: string) {
+    if (!activeBoard) return
+    setUpdatingBoard(true)
+    setError('')
+    try {
+      const updatedBoard = await updateBoard(activeBoard.id, title)
+      setBoards((currentBoards) => currentBoards.map((board) => board.id === updatedBoard.id ? updatedBoard : board))
+      setBoardAction(null)
+    } catch (renameError) {
+      setError(renameError instanceof Error ? renameError.message : 'Could not rename board.')
+    } finally {
+      setUpdatingBoard(false)
+    }
+  }
+
+  async function handleDeleteBoard() {
+    if (!activeBoard) return
+    setUpdatingBoard(true)
+    setError('')
+    try {
+      await deleteBoard(activeBoard.id)
+      const remainingBoards = boards.filter((board) => board.id !== activeBoard.id)
+      setBoards(remainingBoards)
+      setBoardAction(null)
+      if (remainingBoards[0]) selectBoard(remainingBoards[0].id)
+      else setActiveBoardId('')
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete board.')
+    } finally {
+      setUpdatingBoard(false)
+    }
+  }
+
   const activeBoard = boards.find((board) => board.id === activeBoardId)
   if (loading) return <StartupScreen message="Loading your boards…" />
   if (error && boards.length === 0) return <WorkspaceError message={error} onRetry={() => void loadBoards(true)} onLogout={() => void handleLogout()} />
@@ -317,8 +370,10 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
 
   return (
     <>
-      <BoardCanvas key={activeBoard.id} board={activeBoard} boards={boards} user={user} onSelectBoard={selectBoard} onCreateBoard={() => setShowCreateBoard(true)} onLogout={() => void handleLogout()} />
+      <BoardCanvas key={activeBoard.id} board={activeBoard} boards={boards} user={user} onSelectBoard={selectBoard} onCreateBoard={() => setShowCreateBoard(true)} onShowBoards={(filter) => { setBoardListFilter(filter); setShowBoardList(true) }} onEditBoard={setBoardAction} onLogout={() => void handleLogout()} />
       {showCreateBoard && <CreateBoardDialog onClose={() => setShowCreateBoard(false)} onCreate={handleCreateBoard} busy={creating} />}
+      {boardAction && activeBoard && <BoardActionDialog mode={boardAction} board={activeBoard} busy={updatingBoard} onClose={() => setBoardAction(null)} onRename={handleRenameBoard} onDelete={() => void handleDeleteBoard()} />}
+      {showBoardList && <BoardListDialog boards={boards} filter={boardListFilter} onClose={() => setShowBoardList(false)} onSelect={(id) => { selectBoard(id); setShowBoardList(false) }} onCreate={() => { setShowBoardList(false); setShowCreateBoard(true) }} />}
       {error && <div className="api-toast" role="status">{error}</div>}
     </>
   )
@@ -360,12 +415,119 @@ function CreateBoardDialog({ onClose, onCreate, busy }: { onClose: () => void; o
   )
 }
 
+function BoardListDialog({
+  boards,
+  filter,
+  onClose,
+  onSelect,
+  onCreate,
+}: {
+  boards: Board[]
+  filter: 'all' | 'shared'
+  onClose: () => void
+  onSelect: (boardId: string) => void
+  onCreate: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const visibleBoards = boards.filter((board) => {
+    const matchesFilter = filter === 'all' || board.role !== 'owner'
+    return matchesFilter && board.title.toLowerCase().includes(query.trim().toLowerCase())
+  })
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <section className="create-dialog board-list-dialog" role="dialog" aria-modal="true" aria-labelledby="board-list-title">
+        <button className="dialog-close" aria-label="Close" onClick={onClose}>×</button>
+        <p className="auth-kicker">WORKSPACE</p><h2 id="board-list-title">{filter === 'all' ? 'All boards' : 'Shared with me'}</h2>
+        <label className="board-list-search"><Search size={15} /><input aria-label="Search boards" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by board name" /></label>
+        {visibleBoards.length > 0
+          ? <div className="board-list-results">{visibleBoards.map((board, index) => <button key={board.id} className="board-list-row" onClick={() => onSelect(board.id)}><span className={`board-color ${['color-lilac', 'color-sky', 'color-peach', 'color-green'][index % 4]}`} /><span className="board-list-name">{board.title}<small>Updated {new Date(board.updated_at).toLocaleDateString()}</small></span><span className="board-list-role">{board.role}</span><ArrowRight size={15} /></button>)}</div>
+          : <div className="board-list-empty">{filter === 'shared' ? 'Boards shared with you will appear here.' : query ? 'No boards match that search.' : 'No boards yet.'}</div>}
+        <button className="board-list-create" onClick={onCreate}><Plus size={15} /> Create a board</button>
+      </section>
+    </div>
+  )
+}
+
+function BoardActionDialog({
+  mode,
+  board,
+  busy,
+  onClose,
+  onRename,
+  onDelete,
+}: {
+  mode: 'rename' | 'delete'
+  board: Board
+  busy: boolean
+  onClose: () => void
+  onRename: (title: string) => Promise<void>
+  onDelete: () => void
+}) {
+  const [title, setTitle] = useState(board.title)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (title.trim()) await onRename(title.trim())
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <section className="create-dialog" role="dialog" aria-modal="true" aria-labelledby="board-action-title">
+        <button className="dialog-close" aria-label="Close" onClick={onClose}>×</button>
+        <div className="state-mark">{mode === 'rename' ? <Type size={18} /> : <Plus size={18} />}</div>
+        <p className="auth-kicker">BOARD SETTINGS</p>
+        <h2 id="board-action-title">{mode === 'rename' ? 'Rename this board.' : 'Delete this board?'}</h2>
+        {mode === 'rename'
+          ? <form className="auth-form board-action-form" onSubmit={handleSubmit}><label>Board name<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={120} /></label><button className="auth-submit" disabled={busy || !title.trim()}>{busy ? 'Saving…' : 'Save name'}<ArrowRight size={16} /></button></form>
+          : <><p className="auth-subtitle">“{board.title}” and its saved canvas draft will be removed. This can’t be undone.</p><div className="state-actions"><button className="button button-outline" onClick={onClose}>Keep board</button><button className="danger-button" onClick={onDelete} disabled={busy}>{busy ? 'Deleting…' : 'Delete board'}</button></div></>}
+      </section>
+    </div>
+  )
+}
+
+function InviteDialog({
+  boardTitle,
+  invitedEmails,
+  onInvite,
+  onClose,
+}: {
+  boardTitle: string
+  invitedEmails: DemoInvite[]
+  onInvite: (email: string, role: 'editor' | 'viewer') => void
+  onClose: () => void
+}) {
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<'editor' | 'viewer'>('editor')
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!email.trim()) return
+    onInvite(email, role)
+    setEmail('')
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <section className="create-dialog invite-dialog" role="dialog" aria-modal="true" aria-labelledby="invite-title">
+        <button className="dialog-close" aria-label="Close" onClick={onClose}>×</button>
+        <div className="state-mark"><Users size={18} /></div><p className="auth-kicker">BOARD ACCESS</p><h2 id="invite-title">Bring someone in.</h2><p className="auth-subtitle">Invite preview for “{boardTitle}”.</p>
+        <div className="demo-warning"><span className="demo-notice-dot" /> Demo only. No email is sent.</div>
+        <form className="auth-form invite-form" onSubmit={handleSubmit}><label>Email address<input type="email" autoFocus value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="teammate@example.com" /></label><label>Access<select value={role} onChange={(event) => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></label><button className="auth-submit" disabled={!email.trim()}>Add preview member<ArrowRight size={16} /></button></form>
+        {invitedEmails.length > 0 && <div className="invite-preview-list"><span className="auth-kicker">PREVIEW MEMBERS</span>{invitedEmails.map((invite) => <div className="invite-preview-row" key={invite.email}><span className="presence-avatar avatar-blue">{invite.email.slice(0, 1).toUpperCase()}</span><span>{invite.email}</span><small>{invite.role}</small></div>)}</div>}
+      </section>
+    </div>
+  )
+}
+
 function BoardCanvas({
   board,
   boards,
   user,
   onSelectBoard,
   onCreateBoard,
+  onShowBoards,
+  onEditBoard,
   onLogout,
 }: {
   board: Board
@@ -373,42 +535,95 @@ function BoardCanvas({
   user: User
   onSelectBoard: (boardId: string) => void
   onCreateBoard: () => void
+  onShowBoards: (filter: 'all' | 'shared') => void
+  onEditBoard: (mode: 'rename' | 'delete') => void
   onLogout: () => void
 }) {
   const canEdit = board.role !== 'viewer'
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(getInitialNodes(board.id, !canEdit))
   const [activeTool, setActiveTool] = useState('select')
   const [copied, setCopied] = useState(false)
+  const [showBoardMenu, setShowBoardMenu] = useState(false)
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInput = useRef<HTMLInputElement>(null)
+  const [demoInvites, setDemoInvites] = useState<DemoInvite[]>(() => {
+    if (!demoMode) return [] as DemoInvite[]
+    try {
+      const storedInvites = localStorage.getItem(`canvaslab:board:${board.id}:invites`)
+      return storedInvites ? JSON.parse(storedInvites) as DemoInvite[] : [] as DemoInvite[]
+    } catch {
+      return [] as DemoInvite[]
+    }
+  })
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      localStorage.setItem(`canvaslab:board:${board.id}`, JSON.stringify(nodes))
+      localStorage.setItem(`canvaslab:board:${board.id}`, JSON.stringify(nodes.map(({ selected: _selected, ...node }) => node)))
     }, 250)
 
     return () => window.clearTimeout(timeout)
   }, [board.id, nodes])
 
+  useEffect(() => {
+    if (demoMode) localStorage.setItem(`canvaslab:board:${board.id}:invites`, JSON.stringify(demoInvites))
+  }, [board.id, demoInvites])
+
+  useEffect(() => {
+    function handleSearchShortcut(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchInput.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleSearchShortcut)
+    return () => window.removeEventListener('keydown', handleSearchShortcut)
+  }, [])
+
   function addNode(type: 'note' | 'code' | 'text') {
     const id = `node-${crypto.randomUUID()}`
-    const offset = (nodes.length % 5) * 34
+    const size = type === 'code' ? { width: 290, height: 190 } : type === 'text' ? { width: 230, height: 70 } : { width: 240, height: 170 }
+    let position = { x: 110, y: 115 }
+
+    for (let row = 0; row < 20; row += 1) {
+      let foundPosition = false
+      for (let column = 0; column < 6; column += 1) {
+        const candidate = { x: 110 + column * 310, y: 115 + row * 245 }
+        const overlapsNode = nodes.some((node) => {
+          const nodeSize = node.type === 'code' ? { width: 290, height: 190 } : node.type === 'text' ? { width: 230, height: 70 } : { width: 240, height: 170 }
+          return candidate.x < node.position.x + nodeSize.width + 28
+            && candidate.x + size.width + 28 > node.position.x
+            && candidate.y < node.position.y + nodeSize.height + 28
+            && candidate.y + size.height + 28 > node.position.y
+        })
+
+        if (!overlapsNode) {
+          position = candidate
+          foundPosition = true
+          break
+        }
+      }
+      if (foundPosition) break
+    }
+
     const newNode: CanvasNode = type === 'note'
       ? {
           id,
           type,
-          position: { x: 190 + offset, y: 215 + offset },
+          position,
           data: { title: 'New thought', text: 'Write an idea…', tone: 'note-lemon' },
         }
       : type === 'text'
         ? {
             id,
             type,
-            position: { x: 300 + offset, y: 150 + offset },
+            position,
             data: { title: 'Text', text: 'Type something…' },
           }
         : {
           id,
           type,
-          position: { x: 520 + offset, y: 190 + offset },
+          position,
           data: { title: 'untitled.ts', text: '// Start sketching here' },
         }
 
@@ -428,6 +643,20 @@ function BoardCanvas({
     }
   }
 
+  function searchCanvas(query: string) {
+    setSearchQuery(query)
+    const normalizedQuery = query.trim().toLowerCase()
+    setNodes((currentNodes) => currentNodes.map((node) => ({
+      ...node,
+      selected: Boolean(normalizedQuery) && `${node.data.title} ${node.data.text}`.toLowerCase().includes(normalizedQuery),
+    })))
+  }
+
+  function addDemoInvite(email: string, role: 'editor' | 'viewer') {
+    const normalizedEmail = email.trim().toLowerCase()
+    setDemoInvites((currentInvites) => [...currentInvites.filter((invite) => invite.email !== normalizedEmail), { email: normalizedEmail, role }])
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -441,8 +670,8 @@ function BoardCanvas({
           <ChevronDown size={15} />
         </div>
         <div className="sidebar-label">WORKSPACE</div>
-        <button className="nav-item nav-active"><span className="nav-glyph grid-glyph">▦</span> All boards <span className="nav-count">{boards.length}</span></button>
-        <button className="nav-item"><Users size={16} /> Shared with me</button>
+        <button className="nav-item nav-active" onClick={() => onShowBoards('all')}><span className="nav-glyph grid-glyph">▦</span> All boards <span className="nav-count">{boards.length}</span></button>
+        <button className="nav-item" onClick={() => onShowBoards('shared')}><Users size={16} /> Shared with me</button>
         <div className="sidebar-label boards-label">YOUR BOARDS <button aria-label="Create board" onClick={onCreateBoard}><Plus size={15} /></button></div>
         {boards.slice(0, 8).map((item, index) => (
           <button key={item.id} className={`board-link ${item.id === board.id ? 'selected-board' : ''}`} onClick={() => onSelectBoard(item.id)}>
@@ -462,14 +691,14 @@ function BoardCanvas({
         <header className="topbar">
           <div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
           <div className="topbar-actions">
-            <span className="local-badge">SOLO PREVIEW</span>
-            <button className="button button-outline invite-button" disabled title="Invitations are added with the collaboration API"><Users size={15} /> Invite</button>
+            <span className="local-badge">{demoMode ? 'LOCAL DEMO' : 'LOCAL DRAFT'}</span>
+            <button className="button button-outline invite-button" disabled={!demoMode || !canEdit} title={demoMode ? 'Preview an invitation locally; no email will be sent' : 'Invitations are not available yet'} onClick={() => setShowInviteDialog(true)}><Users size={15} /> Invite</button>
             <button className="button button-dark" onClick={shareBoard}><Share2 size={15} /> {copied ? 'Copied' : 'Share'}</button>
           </div>
         </header>
 
         <div className="board-heading">
-          <div><div className="eyebrow"><span className="eyebrow-line" /> CANVAS BOARD <span className="heading-dot">·</span> {new Date(board.updated_at).toLocaleDateString()}</div><h1>{board.title} <button className="title-chevron" aria-label="Board options"><ChevronDown size={16} /></button></h1><p>Shape the next version of how we think together.</p></div>
+          <div><div className="eyebrow"><span className="eyebrow-line" /> CANVAS BOARD <span className="heading-dot">·</span> {new Date(board.updated_at).toLocaleDateString()}</div><div className="board-title-line"><h1>{board.title}</h1><button className="title-chevron" aria-label="Board options" aria-expanded={showBoardMenu} onClick={() => setShowBoardMenu((visible) => !visible)}><ChevronDown size={16} /></button>{showBoardMenu && <div className="board-options-menu" role="menu">{canEdit && <button role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('rename') }}>Rename board</button>}{board.role === 'owner' && <button className="menu-danger" role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('delete') }}>Delete board</button>}</div>}</div><p>Shape the next version of how we think together.</p></div>
           <div className="board-status"><span className="status-pulse" /> {canEdit ? 'Local only' : 'Read-only'} <span className="status-divider" /> <Activity size={14} /> {canEdit ? 'Changes saved on this device' : 'Viewing this board'}</div>
         </div>
 
@@ -481,10 +710,10 @@ function BoardCanvas({
             <button className={`tool-button ${activeTool === 'text' ? 'tool-selected' : ''}`} disabled={!canEdit} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
             <button className={`tool-button ${activeTool === 'code' ? 'tool-selected' : ''}`} disabled={!canEdit} title="Add code block" aria-label="Add code block" onClick={() => { setActiveTool('code'); addNode('code') }}><Code2 size={17} /></button>
             <span className="tool-divider" />
-            <button className="tool-button" title="More canvas tools" aria-label="More canvas tools"><Plus size={17} /></button>
+            <button className="tool-button" disabled title="More canvas tools are coming later" aria-label="More canvas tools"><Plus size={17} /></button>
           </div>
 
-          <div className="canvas-search"><Search size={15} /><span>Find on canvas</span><kbd>⌘ K</kbd></div>
+          <label className="canvas-search"><Search size={15} /><input ref={searchInput} aria-label="Find on canvas" placeholder="Find on canvas" value={searchQuery} onChange={(event) => searchCanvas(event.target.value)} /><kbd>Ctrl K</kbd></label>
           <div className="canvas-live"><span className="live-indicator" /><span>Solo board</span></div>
           <ReactFlow
             nodes={nodes}
@@ -509,6 +738,7 @@ function BoardCanvas({
 
         <footer className="workspace-footer"><span><span className="footer-dot" /> Board ready</span><span>100%</span><span className="footer-separator" /><span>{nodes.length} objects</span><button className="footer-shortcut" onClick={onCreateBoard}><FilePlus2 size={13} /> New board</button></footer>
       </section>
+      {showInviteDialog && <InviteDialog boardTitle={board.title} invitedEmails={demoInvites} onInvite={addDemoInvite} onClose={() => setShowInviteDialog(false)} />}
     </main>
   )
 }

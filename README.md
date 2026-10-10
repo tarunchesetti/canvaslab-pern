@@ -4,13 +4,13 @@ A collaborative whiteboard and shared code canvas built as a PERN portfolio proj
 
 ## Current milestone
 
-The React client now uses the Express API for session restoration, registration/login, and board listing/creation. Board metadata and roles are stored in PostgreSQL. Canvas content is still a per-board browser draft; it is not yet saved to PostgreSQL or shared live. Invitations and Yjs collaboration are not implemented yet.
+The frontend now covers sign-in/sign-up, board listing and search, create/rename/delete, the editable canvas, local drafts, and a local invitation preview. Vite development defaults to a browser-local demo so these screens work before PostgreSQL is available. Set `VITE_DEMO_MODE=false` in `client/.env.local` and restart Vite to use the Express API for session and board metadata. In API mode, canvas content is still a per-board browser draft; it is not yet saved to PostgreSQL or shared live. Demo invitations do not send email. Live Yjs collaboration is not implemented yet.
 
 The system requirements and architecture are documented in [RADIO.md](RADIO.md).
 
 ## Run the client
 
-Requirements: Node.js 20.19+ or 22.12+. Login and board management also require the API and PostgreSQL to be running.
+Requirements: Node.js 20.19+ or 22.12+. The local demo runs without PostgreSQL. API mode requires the API and PostgreSQL to be running.
 
 ```powershell
 npm install --prefix client
@@ -26,6 +26,8 @@ npm run build --prefix client
 Board content is currently stored in this browser's local storage. It is not shared between browsers or devices.
 
 ## Run the API
+
+To use real accounts and server-backed board metadata, set `VITE_DEMO_MODE=false` in `client/.env.local`, then restart the client after starting the API below.
 
 Requirements: Node.js 20.19+ or 22.12+ and Docker Desktop for PostgreSQL.
 
