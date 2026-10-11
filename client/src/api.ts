@@ -138,3 +138,17 @@ export async function updateBoardMemberRole(boardId: string, userId: string, rol
 export async function removeBoardMember(boardId: string, userId: string): Promise<void> {
   await request<void>(`/boards/${encodeURIComponent(boardId)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' })
 }
+
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return request<{ message: string }>('/auth/password-reset/request', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function completePasswordReset(token: string, password: string): Promise<{ message: string }> {
+  return request<{ message: string }>('/auth/password-reset/complete', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  })
+}
