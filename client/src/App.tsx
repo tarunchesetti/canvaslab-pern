@@ -3,6 +3,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  NodeResizer,
   ReactFlow,
   useReactFlow,
   useNodesState,
@@ -38,6 +39,8 @@ type CanvasNode = Node<{
   text: string
   tone?: string
   language?: 'typescript' | 'javascript'
+  width?: number
+  height?: number
   readOnly?: boolean
 }, 'note' | 'code' | 'text'>
 
@@ -45,11 +48,12 @@ type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasN
 
 const CodeEditor = lazy(() => import('./CodeEditor'))
 
-function NoteCard({ id, data }: NodeProps<CanvasNode>) {
+function NoteCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
 
   return (
-    <article className={`note-card ${data.tone ?? ''}`}>
+    <article className={`note-card ${data.tone ?? ''}`} style={{ width: data.width ?? 240, height: data.height ?? 170 }}>
+      <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={180} minHeight={120} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
       <div className="node-heading">
         <span className="node-grip" aria-hidden="true">⠿</span>
         <span>{data.title}</span>
@@ -68,25 +72,30 @@ function NoteCard({ id, data }: NodeProps<CanvasNode>) {
   )
 }
 
-function TextCard({ id, data }: NodeProps<CanvasNode>) {
+function TextCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
 
   return (
-    <textarea
+    <>
+      <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={140} minHeight={48} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
+      <textarea
+      style={{ width: data.width ?? 230, height: data.height ?? 70 }}
       className="canvas-text-node nodrag"
       aria-label={`${data.title} text`}
       value={data.text}
       readOnly={data.readOnly}
       onChange={(event) => updateNodeData(id, { text: event.target.value })}
     />
+    </>
   )
 }
 
-function CodeCard({ id, data }: NodeProps<CanvasNode>) {
+function CodeCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
 
   return (
-    <article className="code-card">
+    <article className="code-card" style={{ width: data.width ?? 290, height: data.height ?? 190 }}>
+      <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={220} minHeight={150} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
       <div className="code-heading">
         <div className="code-file"><Code2 size={14} /><span>{data.title}</span></div>
         <label className="language-picker-label">
@@ -759,20 +768,20 @@ function BoardCanvas({
           id,
           type,
           position,
-          data: { title: 'New thought', text: 'Write an idea…', tone: 'note-lemon' },
+          data: { title: 'New thought', text: 'Write an idea…', tone: 'note-lemon', width: size.width, height: size.height },
         }
       : type === 'text'
         ? {
             id,
             type,
             position,
-            data: { title: 'Text', text: 'Type something…' },
+            data: { title: 'Text', text: 'Type something…', width: size.width, height: size.height },
           }
         : {
           id,
           type,
           position,
-          data: { title: 'untitled.ts', text: '// Start sketching here' },
+          data: { title: 'untitled.ts', text: '// Start sketching here', language: 'typescript', width: size.width, height: size.height },
         }
 
     setNodes((currentNodes) => [...currentNodes, newNode])
