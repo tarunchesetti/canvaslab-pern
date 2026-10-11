@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://canvaslab-api.onrender.com/api/:path*"
+    }
+  ]
+}

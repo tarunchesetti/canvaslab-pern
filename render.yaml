@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: canvaslab-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_ROLE
+        value: api
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+
+  - type: web
+    name: canvaslab-collab
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_ROLE
+        value: collab
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        fromService:
+          type: web
+          name: canvaslab-api
+          envVarKey: SESSION_SECRET
