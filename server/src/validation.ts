@@ -29,3 +29,13 @@ export const boardMemberRoleSchema = z.object({
 })
 
 export const userIdSchema = z.string().uuid()
+
+
+export const passwordResetRequestSchema = z.object({
+  email: z.string().trim().email().max(254),
+})
+
+export const passwordResetCompleteSchema = z.object({
+  token: z.string().min(32).max(256),
+  password: z.string().min(12).max(72).refine((value) => Buffer.byteLength(value, 'utf8') <= 72),
+})
