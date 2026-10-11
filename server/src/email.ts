@@ -50,7 +50,11 @@ async function getGmailAccessToken(configuration: Environment): Promise<string> 
   })
   const result = await response.json() as { access_token?: string; error?: string; error_description?: string }
   if (!response.ok || !result.access_token) {
-    throw new Error(`Gmail OAuth token request failed (HTTP ${response.status}): ${result.error_description ?? result.error ?? 'No access token returned'}`)
+    throw new Error(
+      `Gmail OAuth token request failed (HTTP ${response.status}): ` +
+      `error=${result.error ?? 'unknown'}; ` +
+      `description=${result.error_description ?? 'none'}`
+    )
   }
   return result.access_token
 }
