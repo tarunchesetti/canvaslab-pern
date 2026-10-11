@@ -71,9 +71,9 @@ CanvasLab can send board invitations and password-reset emails through the Gmail
 
 1. Sign in to [Google Cloud Console](https://console.cloud.google.com/) with the Gmail account you want CanvasLab to send from.
 2. Create a project, enable **Gmail API**, and configure the OAuth consent screen. For a personal test, choose External and add your sender Gmail account as a test user.
-3. Create an OAuth Client ID of type **Desktop app** and note its client ID and client secret.
+3. Create an OAuth Client ID of type **Web application**. Add `https://developers.google.com/oauthplayground` as an authorized redirect URI, then note the client ID and client secret.
 4. Use Google's [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) with your own OAuth credentials. In its settings, enable **Use your own OAuth credentials**, enter the client ID and secret, and authorize the scope `https://www.googleapis.com/auth/gmail.send` for the sender Gmail account.
-5. Exchange the authorization code for tokens and copy the **refresh token**. Keep the refresh token and client secret private. OAuth Playground may require its redirect URI to be added to the OAuth client if Google reports a redirect mismatch.
+5. Exchange the authorization code for tokens and copy the **refresh token**. Keep the refresh token and client secret private. The redirect URI in the OAuth client must exactly match `https://developers.google.com/oauthplayground`.
 6. In the Render `canvaslab-api` service, set `EMAIL_FROM` to that same Gmail address and configure `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN`. Remove the old `SEND_API_KEY` and `RESEND_API_KEY` values to avoid confusion. Save and wait for Render to redeploy.
 7. Send a test invitation to an inbox you can access and check Render logs and the sender Gmail's Sent folder.
 
