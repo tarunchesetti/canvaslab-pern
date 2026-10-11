@@ -28,6 +28,7 @@ import {
 import type { HocuspocusProvider } from '@hocuspocus/provider'
 import { addBoardMember, ApiError, createBoard, deleteBoard, getBoardMembers, getBoards, getCollaborationToken, getCurrentUser, removeBoardMember, signIn, signOut, signUp, updateBoard, updateBoardMemberRole, type Board, type BoardMember, type User } from './api'
 import type * as Yjs from 'yjs'
+import { passwordsMatch } from './auth-validation'
 import type { CanvasDocumentNode } from './collaboration-state'
 import '@xyflow/react/dist/style.css'
 import './App.css'
@@ -154,7 +155,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
-    if (mode === 'register' && password !== confirmPassword) {
+    if (mode === 'register' && !passwordsMatch(password, confirmPassword)) {
       setError('Passwords do not match.')
       return
     }
@@ -203,7 +204,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
             {mode === 'register' && <label>Name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={80} placeholder="How should we call you?" /></label>}
             <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>
             <label>Password<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' ? 12 : 1} maxLength={72} placeholder={mode === 'register' ? 'At least 12 characters' : 'Your password'} /></label>
-            {mode === 'register' && <label>Confirm password<input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && password !== confirmPassword} />{confirmPassword.length > 0 && password !== confirmPassword && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
+            {mode === 'register' && <label>Confirm password<input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword)} />{confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword) && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
             {error && <div className="auth-error" role="alert">{error}</div>}
             <button className="auth-submit" type="submit" disabled={submitting}>
               {submitting ? 'Connecting…' : mode === 'login' ? 'Sign in to CanvasLab' : 'Create your account'}
