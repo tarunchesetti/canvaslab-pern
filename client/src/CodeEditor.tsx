@@ -1,8 +1,6 @@
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
 
-const extensions = [javascript({ typescript: true })]
-
 interface CodeEditorProps {
   value: string
   language?: 'typescript' | 'javascript'
