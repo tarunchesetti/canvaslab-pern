@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { Environment } from './config.js'
 
 export interface TransactionalEmail {
@@ -56,7 +57,7 @@ async function getGmailAccessToken(configuration: Environment): Promise<string> 
 
 async function sendWithGmail(configuration: Environment, message: TransactionalEmail): Promise<void> {
   const accessToken = await getGmailAccessToken(configuration)
-  const boundary = `canvaslab_${crypto.randomUUID().replace(/-/g, '')}`
+  const boundary = `canvaslab_${randomUUID().replace(/-/g, '')}`
   const safeFrom = configuration.EMAIL_FROM!.replace(/[\r\n<>]/g, '')
   const safeTo = message.to.replace(/[\r\n<>]/g, '')
   const safeSubject = encodeHeader(message.subject.replace(/[\r\n]/g, ''))
