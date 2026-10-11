@@ -139,8 +139,8 @@ export async function removeBoardMember(boardId: string, userId: string): Promis
   await request<void>(`/boards/${encodeURIComponent(boardId)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' })
 }
 
-export async function requestPasswordReset(email: string): Promise<{ message: string }> {
-  return request<{ message: string }>('/auth/password-reset/request', {
+export async function requestPasswordReset(email: string): Promise<{ message: string; resetUrl?: string }> {
+  return request<{ message: string; resetUrl?: string }>('/auth/password-reset/request', {
     method: 'POST',
     body: JSON.stringify({ email }),
   })
@@ -154,8 +154,8 @@ export async function completePasswordReset(token: string, password: string): Pr
 }
 
 
-export async function inviteBoardMember(boardId: string, email: string, role: 'editor' | 'viewer'): Promise<{ email: string; role: 'editor' | 'viewer'; expiresInDays: number }> {
-  return (await request<{ invitation: { email: string; role: 'editor' | 'viewer'; expiresInDays: number } }>(`/boards/${encodeURIComponent(boardId)}/invitations`, {
+export async function inviteBoardMember(boardId: string, email: string, role: 'editor' | 'viewer'): Promise<{ email: string; role: 'editor' | 'viewer'; expiresInDays: number; invitationUrl: string; emailSent: boolean }> {
+  return (await request<{ invitation: { email: string; role: 'editor' | 'viewer'; expiresInDays: number; invitationUrl: string; emailSent: boolean } }>(`/boards/${encodeURIComponent(boardId)}/invitations`, {
     method: 'POST',
     body: JSON.stringify({ email, role }),
   })).invitation

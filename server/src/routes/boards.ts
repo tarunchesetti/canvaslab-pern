@@ -265,11 +265,6 @@ export function createBoardsRouter(pool: Pool, configuration: Environment): Rout
       response.status(403).json({ error: 'Only the board owner can invite collaborators' })
       return
     }
-    if (!configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL || !configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET) {
-      response.status(503).json({ error: 'Email delivery is not configured on this server yet.' })
-      return
-    }
-
     const email = parsed.data.email.toLowerCase()
     const existingMember = await pool.query(
       'SELECT 1 FROM board_members m JOIN users u ON u.id = m.user_id WHERE m.board_id = $1 AND LOWER(u.email) = $2',
@@ -292,26 +287,36 @@ export function createBoardsRouter(pool: Pool, configuration: Environment): Rout
 
     const invitationUrl = new URL('/', configuration.APP_BASE_URL)
     invitationUrl.searchParams.set('inviteToken', token)
-    try {
-      const delivery = await fetch(configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET}` },
-        body: JSON.stringify({
-          to: email,
-          subject: `You’re invited to collaborate on ${boardResult.rows[0]?.title ?? 'a CanvasLab board'}`,
-          text: `${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}. Sign in or create an account using ${email}, then accept the invitation here: ${invitationUrl.toString()}. This link expires in 7 days.`,
-          html: `<p>${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}.</p><p>Sign in or create an account using ${email}, then <a href="${invitationUrl.toString()}">accept the invitation</a>. This link expires in 7 days.</p>`,
-        }),
-      })
-      if (!delivery.ok) throw new Error(`Invitation email delivery returned HTTP ${delivery.status}`)
-    } catch (error) {
-      await pool.query('UPDATE board_invitations SET revoked_at = NOW() WHERE id = $1', [invitationId])
-      console.error('Board invitation email delivery failed', error)
-      response.status(502).json({ error: 'Could not send the invitation email. Check the configured email delivery service.' })
-      return
+    let emailSent = false
+    if (configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL && configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET) {
+      try {
+        const delivery = await fetch(configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET}` },
+          body: JSON.stringify({
+            to: email,
+            subject: `You’re invited to collaborate on ${boardResult.rows[0]?.title ?? 'a CanvasLab board'}`,
+            text: `${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}. Sign in or create an account using ${email}, then accept the invitation here: ${invitationUrl.toString()}. This link expires in 7 days.`,
+            html: `<p>${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}.</p><p>Sign in or create an account using ${email}, then <a href="${invitationUrl.toString()}">accept the invitation</a>. This link expires in 7 days.</p>`,
+          }),
+        })
+        if (!delivery.ok) throw new Error(`Invitation email delivery returned HTTP ${delivery.status}`)
+        emailSent = true
+      } catch (error) {
+        // Keep the invitation usable: the owner can copy and share the secure link manually.
+        console.error('Board invitation email delivery failed; manual link sharing remains available', error)
+      }
     }
 
-    response.status(201).json({ invitation: { email, role: parsed.data.role, expiresInDays: 7 } })
+    response.status(201).json({
+      invitation: {
+        email,
+        role: parsed.data.role,
+        expiresInDays: 7,
+        invitationUrl: invitationUrl.toString(),
+        emailSent,
+      },
+    })
   })
 
   router.post('/:boardId/members', async (request, response) => {
