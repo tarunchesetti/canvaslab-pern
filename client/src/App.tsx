@@ -630,11 +630,11 @@ function BoardMembersDialog({
         <div className="state-mark"><Users size={18} /></div>
         <p className="auth-kicker">BOARD ACCESS</p>
         <h2 id="members-title">People on this board</h2>
-        <p className="auth-subtitle">Invite anyone by email. They can register or sign in to accept the invitation.</p>
+        <p className="auth-subtitle">Enter an email and create a secure invitation link. If email delivery is configured, CanvasLab will also send it automatically.</p>
         {canManage && <form className="auth-form member-add-form" onSubmit={handleAdd}>
           <label>Email address<input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="teammate@example.com" /></label>
           <label>Access<select value={role} onChange={(event) => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></label>
-          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Send invitation'}<ArrowRight size={16} /></button>
+          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Creating link…' : 'Create invitation link'}<ArrowRight size={16} /></button>
         </form>}
         {notice && <div className="auth-notice" role="status">{notice}</div>}
         {invitationLink && <div className="invitation-link-panel"><label htmlFor="board-invitation-link">Invitation link</label><input id="board-invitation-link" readOnly value={invitationLink} onFocus={(event) => event.currentTarget.select()} /><div className="invitation-link-actions"><button type="button" className="button button-outline" onClick={async () => { try { await navigator.clipboard.writeText(invitationLink); setNotice('Invitation link copied to clipboard.') } catch { setNotice('Select the invitation link above and copy it manually.') } }}>Copy invitation link</button><a href={invitationLink}>Open link</a></div></div>}
@@ -945,7 +945,7 @@ function BoardCanvas({
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
             <button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> People</button>
-            <button className="button button-dark" onClick={shareBoard}><Share2 size={15} /> {copied ? 'Copied' : 'Share'}</button>
+            <button className="button button-dark" title="Copy the board URL; use People to grant access" aria-label="Copy board URL. Use People to grant access." onClick={shareBoard}><Share2 size={15} /> {copied ? 'Board link copied' : 'Share board link'}</button>
           </div>
         </header>
 
