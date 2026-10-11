@@ -630,11 +630,11 @@ function BoardMembersDialog({
         <div className="state-mark"><Users size={18} /></div>
         <p className="auth-kicker">BOARD ACCESS</p>
         <h2 id="members-title">People on this board</h2>
-        <p className="auth-subtitle">Enter an email and create a secure invitation link. If email delivery is configured, CanvasLab will also send it automatically.</p>
+        <p className="auth-subtitle">Enter an email to send a board invitation. CanvasLab will email the secure invite link and keep a copyable link available below.</p>
         {canManage && <form className="auth-form member-add-form" onSubmit={handleAdd}>
           <label>Email address<input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="teammate@example.com" /></label>
           <label>Access<select value={role} onChange={(event) => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></label>
-          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Creating link…' : 'Create invitation link'}<ArrowRight size={16} /></button>
+          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Sending invitation…' : 'Send invitation'}<ArrowRight size={16} /></button>
         </form>}
         {notice && <div className="auth-notice" role="status">{notice}</div>}
         {invitationLink && <div className="invitation-link-panel"><label htmlFor="board-invitation-link">Invitation link</label><input id="board-invitation-link" readOnly value={invitationLink} onFocus={(event) => event.currentTarget.select()} /><div className="invitation-link-actions"><button type="button" className="button button-outline" onClick={async () => { try { await navigator.clipboard.writeText(invitationLink); setNotice('Invitation link copied to clipboard.') } catch { setNotice('Select the invitation link above and copy it manually.') } }}>Copy invitation link</button><a href={invitationLink}>Open link</a></div></div>}
