@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import type { Pool } from 'pg'
 import type { Environment } from '../config.js'
+import { isEmailConfigured, sendTransactionalEmail } from '../email.js'
 import { requireAuth, sessionUserId } from '../auth.js'
 import { acceptBoardInvitationSchema, boardIdSchema, boardInvitationSchema, boardMemberRoleSchema, boardMemberSchema, createBoardSchema, updateBoardSchema, userIdSchema } from '../validation.js'
 
@@ -288,19 +289,14 @@ export function createBoardsRouter(pool: Pool, configuration: Environment): Rout
     const invitationUrl = new URL('/', configuration.APP_BASE_URL)
     invitationUrl.searchParams.set('inviteToken', token)
     let emailSent = false
-    if (configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL && configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET) {
+    if (isEmailConfigured(configuration)) {
       try {
-        const delivery = await fetch(configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET}` },
-          body: JSON.stringify({
-            to: email,
-            subject: `You’re invited to collaborate on ${boardResult.rows[0]?.title ?? 'a CanvasLab board'}`,
-            text: `${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}. Sign in or create an account using ${email}, then accept the invitation here: ${invitationUrl.toString()}. This link expires in 7 days.`,
-            html: `<p>${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}.</p><p>Sign in or create an account using ${email}, then <a href="${invitationUrl.toString()}">accept the invitation</a>. This link expires in 7 days.</p>`,
-          }),
+        await sendTransactionalEmail(configuration, {
+          to: email,
+          subject: `You’re invited to collaborate on ${boardResult.rows[0]?.title ?? 'a CanvasLab board'}`,
+          text: `${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}. Sign in or create an account using ${email}, then accept the invitation here: ${invitationUrl.toString()}. This link expires in 7 days.`,
+          html: `<p>${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}.</p><p>Sign in or create an account using ${email}, then <a href="${invitationUrl.toString()}">accept the invitation</a>. This link expires in 7 days.</p>`,
         })
-        if (!delivery.ok) throw new Error(`Invitation email delivery returned HTTP ${delivery.status}`)
         emailSent = true
       } catch (error) {
         // Keep the invitation usable: the owner can copy and share the secure link manually.
