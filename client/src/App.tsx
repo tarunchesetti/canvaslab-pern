@@ -16,6 +16,8 @@ import {
   ChevronDown,
   Code2,
   Command,
+  Copy,
+  LogOut,
   FilePlus2,
   LoaderCircle,
   MousePointer2,
@@ -203,6 +205,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(initialError)
   const [notice, setNotice] = useState('')
+  const [resetUrl, setResetUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -218,6 +221,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
       if (mode === 'forgot') {
         const result = await requestPasswordReset(email)
         setNotice(result.message)
+        setResetUrl(result.resetUrl ?? '')
         return
       }
       if (mode === 'reset') {
@@ -277,7 +281,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
             {mode !== 'forgot' && <label>Password<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' || mode === 'reset' ? 12 : 1} maxLength={72} placeholder={mode === 'register' || mode === 'reset' ? 'At least 12 characters' : 'Your password'} /></label>}
             {(mode === 'register' || mode === 'reset') && <label>Confirm password<input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword)} />{confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword) && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
             {mode === 'login' && <button type="button" className="auth-link" onClick={() => { setMode('forgot'); setError(''); setNotice('') }}>Forgot password?</button>}
-            {notice && <div className="auth-notice" role="status">{notice}</div>}
+            {notice && <div className="auth-notice" role="status">{notice}{resetUrl && <p className="auth-reset-link"><a href={resetUrl}>Open local password reset link</a></p>}</div>}
             {error && <div className="auth-error" role="alert">{error}</div>}
             <button className="auth-submit" type="submit" disabled={submitting}>
               {submitting ? 'Please wait…' : mode === 'login' ? 'Sign in to CanvasLab' : mode === 'register' ? 'Create your account' : mode === 'forgot' ? 'Send reset link' : 'Update password'}
@@ -563,6 +567,7 @@ function BoardMembersDialog({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [invitationLink, setInvitationLink] = useState('')
 
   useEffect(() => {
     let active = true
@@ -580,7 +585,10 @@ function BoardMembersDialog({
     setNotice('')
     try {
       const invitation = await inviteBoardMember(board.id, email, role)
-      setNotice(`Invitation sent to ${invitation.email}. The link expires in ${invitation.expiresInDays} days.`)
+      setInvitationLink(invitation.invitationUrl)
+      setNotice(invitation.emailSent
+        ? `Invitation email sent to ${invitation.email}. You can also copy the link below; it expires in ${invitation.expiresInDays} days.`
+        : `Invitation created for ${invitation.email}. Email delivery is optional; copy and share the link below. It expires in ${invitation.expiresInDays} days.`)
       setEmail('')
     } catch (addError) {
       setError(addError instanceof Error ? addError.message : 'Could not send that invitation.')
@@ -629,6 +637,7 @@ function BoardMembersDialog({
           <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Send invitation'}<ArrowRight size={16} /></button>
         </form>}
         {notice && <div className="auth-notice" role="status">{notice}</div>}
+        {invitationLink && <div className="invitation-link-panel"><label htmlFor="board-invitation-link">Invitation link</label><input id="board-invitation-link" readOnly value={invitationLink} onFocus={(event) => event.currentTarget.select()} /><div className="invitation-link-actions"><button type="button" className="button button-outline" onClick={() => void navigator.clipboard.writeText(invitationLink)}>Copy invitation link</button><a href={invitationLink}>Open link</a></div></div>}
         {error && <div className="auth-error members-error" role="alert">{error}</div>}
         <div className="member-list" aria-live="polite">
           {loading ? <div className="member-list-empty">Loading board members…</div> : members.length === 0 ? <div className="member-list-empty">No members found.</div> : members.map((member) => (
@@ -926,7 +935,7 @@ function BoardCanvas({
         <div className="sidebar-bottom">
           <div className="profile-avatar">{user.displayName.slice(0, 2).toUpperCase()}</div>
           <span className="profile-copy"><strong>{user.displayName}</strong><small>{user.email}</small></span>
-          <button className="icon-button profile-menu" aria-label="Sign out" title="Sign out" onClick={onLogout}><ChevronDown size={15} /></button>
+          <button className="button button-outline signout-button" aria-label="Sign out" title="Sign out" onClick={onLogout}><LogOut size={14} /><span>Sign out</span></button>
         </div>
       </aside>
 
