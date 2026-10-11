@@ -637,7 +637,7 @@ function BoardMembersDialog({
           <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Send invitation'}<ArrowRight size={16} /></button>
         </form>}
         {notice && <div className="auth-notice" role="status">{notice}</div>}
-        {invitationLink && <div className="invitation-link-panel"><label htmlFor="board-invitation-link">Invitation link</label><input id="board-invitation-link" readOnly value={invitationLink} onFocus={(event) => event.currentTarget.select()} /><div className="invitation-link-actions"><button type="button" className="button button-outline" onClick={() => void navigator.clipboard.writeText(invitationLink)}>Copy invitation link</button><a href={invitationLink}>Open link</a></div></div>}
+        {invitationLink && <div className="invitation-link-panel"><label htmlFor="board-invitation-link">Invitation link</label><input id="board-invitation-link" readOnly value={invitationLink} onFocus={(event) => event.currentTarget.select()} /><div className="invitation-link-actions"><button type="button" className="button button-outline" onClick={async () => { try { await navigator.clipboard.writeText(invitationLink); setNotice('Invitation link copied to clipboard.') } catch { setNotice('Select the invitation link above and copy it manually.') } }}>Copy invitation link</button><a href={invitationLink}>Open link</a></div></div>}
         {error && <div className="auth-error members-error" role="alert">{error}</div>}
         <div className="member-list" aria-live="polite">
           {loading ? <div className="member-list-empty">Loading board members…</div> : members.length === 0 ? <div className="member-list-empty">No members found.</div> : members.map((member) => (
@@ -919,7 +919,6 @@ function BoardCanvas({
         <div className="workspace-switcher">
           <span className="workspace-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span>
           <span className="workspace-copy"><strong>{user.displayName}</strong><small>{user.email}</small></span>
-          <ChevronDown size={15} />
         </div>
         <div className="sidebar-label">WORKSPACE</div>
         <button className="nav-item nav-active" onClick={() => onShowBoards('all')}><span className="nav-glyph grid-glyph">▦</span> All boards <span className="nav-count">{boards.length}</span></button>
