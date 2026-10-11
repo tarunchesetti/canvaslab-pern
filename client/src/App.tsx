@@ -16,7 +16,6 @@ import {
   ChevronDown,
   Code2,
   Command,
-  Copy,
   LogOut,
   FilePlus2,
   LoaderCircle,
@@ -212,6 +211,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
     event.preventDefault()
     setError('')
     setNotice('')
+    setResetUrl('')
     if ((mode === 'register' || mode === 'reset') && !passwordsMatch(password, confirmPassword)) {
       setError('Passwords do not match.')
       return
