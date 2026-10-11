@@ -54,3 +54,18 @@ test('concurrent text insertions merge and node properties round-trip', () => {
   assert.equal(firstResult.position.x, 240)
   assert.equal(secondResult.position.y, 220)
 })
+
+test('code language and node dimensions round-trip through the shared document', () => {
+  const document = new Y.Doc()
+  const nodes = document.getMap<Y.Map<unknown>>('nodes')
+  syncNodesToDocument(document, nodes, [{
+    ...initialNode,
+    type: 'code',
+    position: { x: 20, y: 30 },
+    data: { title: 'example.js', text: 'const answer = 42', language: 'javascript', width: 420, height: 260 },
+  }])
+  const restored = readNodesFromDocument(nodes)[0]!
+  assert.equal(restored.data.language, 'javascript')
+  assert.equal(restored.data.width, 420)
+  assert.equal(restored.data.height, 260)
+})
