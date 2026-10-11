@@ -39,3 +39,13 @@ export const passwordResetCompleteSchema = z.object({
   token: z.string().min(32).max(256),
   password: z.string().min(12).max(72).refine((value) => Buffer.byteLength(value, 'utf8') <= 72),
 })
+
+
+export const boardInvitationSchema = z.object({
+  email: z.string().trim().email().max(254),
+  role: z.enum(['editor', 'viewer']),
+})
+
+export const acceptBoardInvitationSchema = z.object({
+  token: z.string().min(32).max(256),
+})
