@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import type { Pool } from 'pg'
 import { requireAuth, sessionUserId } from '../auth.js'
-import { boardIdSchema, createBoardSchema, updateBoardSchema } from '../validation.js'
+import { boardIdSchema, boardMemberRoleSchema, boardMemberSchema, createBoardSchema, updateBoardSchema, userIdSchema } from '../validation.js'
 
 type BoardRole = 'owner' | 'editor' | 'viewer'
 
@@ -18,8 +18,20 @@ interface MembershipRow {
   role: BoardRole
 }
 
+interface BoardMemberRow {
+  id: string
+  display_name: string
+  email: string
+  role: BoardRole
+  created_at: Date
+}
+
 export function canEditBoard(role: BoardRole): boolean {
   return role === 'owner' || role === 'editor'
+}
+
+export function canManageBoardMembers(role: BoardRole): boolean {
+  return role === 'owner'
 }
 
 function parseBoardId(value: string): string | null {
@@ -33,6 +45,11 @@ async function getMembership(pool: Pool, boardId: string, userId: string): Promi
     [boardId, userId],
   )
   return result.rows[0]?.role ?? null
+}
+
+function parseUserId(value: string): string | null {
+  const parsed = userIdSchema.safeParse(value)
+  return parsed.success ? parsed.data : null
 }
 
 export function createBoardsRouter(pool: Pool): Router {
@@ -151,6 +168,159 @@ export function createBoardsRouter(pool: Pool): Router {
     }
 
     await pool.query('DELETE FROM boards WHERE id = $1 AND owner_id = $2', [boardId, userId])
+    response.status(204).end()
+  })
+
+  router.get('/:boardId/members', async (request, response) => {
+    const boardId = parseBoardId(request.params.boardId!)
+    if (!boardId) {
+      response.status(400).json({ error: 'Invalid board id' })
+      return
+    }
+
+    const viewerRole = await getMembership(pool, boardId, sessionUserId(request))
+    if (!viewerRole) {
+      response.status(404).json({ error: 'Board not found' })
+      return
+    }
+
+    const result = await pool.query<BoardMemberRow>(
+      `SELECT u.id, u.display_name, u.email, m.role, m.created_at
+       FROM board_members m
+       JOIN users u ON u.id = m.user_id
+       WHERE m.board_id = $1
+       ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'editor' THEN 1 ELSE 2 END, m.created_at`,
+      [boardId],
+    )
+    response.json({ members: result.rows.map((member) => ({
+      id: member.id,
+      displayName: member.display_name,
+      email: member.email,
+      role: member.role,
+      addedAt: member.created_at,
+    })) })
+  })
+
+  router.post('/:boardId/members', async (request, response) => {
+    const boardId = parseBoardId(request.params.boardId!)
+    const parsed = boardMemberSchema.safeParse(request.body)
+    if (!boardId || !parsed.success) {
+      response.status(400).json({ error: 'Invalid board id, email, or role' })
+      return
+    }
+
+    const requesterId = sessionUserId(request)
+    const requesterRole = await getMembership(pool, boardId, requesterId)
+    if (!requesterRole) {
+      response.status(404).json({ error: 'Board not found' })
+      return
+    }
+    if (!canManageBoardMembers(requesterRole)) {
+      response.status(403).json({ error: 'Only the board owner can manage members' })
+      return
+    }
+
+    const userResult = await pool.query<Pick<BoardMemberRow, 'id' | 'display_name' | 'email'>>(
+      'SELECT id, display_name, email FROM users WHERE LOWER(email) = $1',
+      [parsed.data.email.toLowerCase()],
+    )
+    const invitedUser = userResult.rows[0]
+    if (!invitedUser) {
+      response.status(404).json({ error: 'No account uses that email yet. They must register before you can add them.' })
+      return
+    }
+    if (invitedUser.id === requesterId) {
+      response.status(409).json({ error: 'You already own this board' })
+      return
+    }
+
+    const result = await pool.query(
+      `INSERT INTO board_members (board_id, user_id, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (board_id, user_id) DO NOTHING
+       RETURNING created_at`,
+      [boardId, invitedUser.id, parsed.data.role],
+    )
+    if (!result.rows[0]) {
+      response.status(409).json({ error: 'That user is already a member of this board' })
+      return
+    }
+
+    await pool.query('UPDATE boards SET updated_at = NOW() WHERE id = $1', [boardId])
+    response.status(201).json({ member: {
+      id: invitedUser.id,
+      displayName: invitedUser.display_name,
+      email: invitedUser.email,
+      role: parsed.data.role,
+      addedAt: result.rows[0].created_at,
+    } })
+  })
+
+  router.patch('/:boardId/members/:userId', async (request, response) => {
+    const boardId = parseBoardId(request.params.boardId!)
+    const userId = parseUserId(request.params.userId!)
+    const parsed = boardMemberRoleSchema.safeParse(request.body)
+    if (!boardId || !userId || !parsed.success) {
+      response.status(400).json({ error: 'Invalid board id, member id, or role' })
+      return
+    }
+
+    const requesterRole = await getMembership(pool, boardId, sessionUserId(request))
+    if (!requesterRole) {
+      response.status(404).json({ error: 'Board not found' })
+      return
+    }
+    if (!canManageBoardMembers(requesterRole)) {
+      response.status(403).json({ error: 'Only the board owner can manage members' })
+      return
+    }
+
+    const result = await pool.query<MembershipRow>(
+      `UPDATE board_members SET role = $1
+       WHERE board_id = $2 AND user_id = $3 AND role <> 'owner'
+       RETURNING role`,
+      [parsed.data.role, boardId, userId],
+    )
+    if (!result.rows[0]) {
+      response.status(404).json({ error: 'Board member not found or is the owner' })
+      return
+    }
+
+    await pool.query('UPDATE boards SET updated_at = NOW() WHERE id = $1', [boardId])
+    response.json({ member: { id: userId, role: result.rows[0].role } })
+  })
+
+  router.delete('/:boardId/members/:userId', async (request, response) => {
+    const boardId = parseBoardId(request.params.boardId!)
+    const userId = parseUserId(request.params.userId!)
+    if (!boardId || !userId) {
+      response.status(400).json({ error: 'Invalid board id or member id' })
+      return
+    }
+
+    const requesterId = sessionUserId(request)
+    const requesterRole = await getMembership(pool, boardId, requesterId)
+    if (!requesterRole) {
+      response.status(404).json({ error: 'Board not found' })
+      return
+    }
+
+    const targetRole = await getMembership(pool, boardId, userId)
+    if (!targetRole) {
+      response.status(404).json({ error: 'Board member not found' })
+      return
+    }
+    if (targetRole === 'owner') {
+      response.status(409).json({ error: 'The board owner cannot be removed' })
+      return
+    }
+    if (!canManageBoardMembers(requesterRole) && requesterId !== userId) {
+      response.status(403).json({ error: 'Only the board owner can remove another member' })
+      return
+    }
+
+    await pool.query('DELETE FROM board_members WHERE board_id = $1 AND user_id = $2', [boardId, userId])
+    await pool.query('UPDATE boards SET updated_at = NOW() WHERE id = $1', [boardId])
     response.status(204).end()
   })
 

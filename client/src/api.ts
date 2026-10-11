@@ -108,3 +108,33 @@ export async function updateBoard(boardId: string, title: string): Promise<Board
 export async function deleteBoard(boardId: string): Promise<void> {
   await request<void>(`/boards/${encodeURIComponent(boardId)}`, { method: 'DELETE' })
 }
+
+export interface BoardMember {
+  id: string
+  displayName: string
+  email: string
+  role: 'owner' | 'editor' | 'viewer'
+  addedAt: string
+}
+
+export async function getBoardMembers(boardId: string): Promise<BoardMember[]> {
+  return (await request<{ members: BoardMember[] }>(`/boards/${encodeURIComponent(boardId)}/members`)).members
+}
+
+export async function addBoardMember(boardId: string, email: string, role: 'editor' | 'viewer'): Promise<BoardMember> {
+  return (await request<{ member: BoardMember }>(`/boards/${encodeURIComponent(boardId)}/members`, {
+    method: 'POST',
+    body: JSON.stringify({ email, role }),
+  })).member
+}
+
+export async function updateBoardMemberRole(boardId: string, userId: string, role: 'editor' | 'viewer'): Promise<BoardMember> {
+  return (await request<{ member: BoardMember }>(`/boards/${encodeURIComponent(boardId)}/members/${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  })).member
+}
+
+export async function removeBoardMember(boardId: string, userId: string): Promise<void> {
+  await request<void>(`/boards/${encodeURIComponent(boardId)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' })
+}

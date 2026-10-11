@@ -18,3 +18,14 @@ export const createBoardSchema = z.object({
 export const updateBoardSchema = createBoardSchema
 
 export const boardIdSchema = z.string().uuid()
+
+export const boardMemberSchema = z.object({
+  email: z.string().trim().email().max(254),
+  role: z.enum(['editor', 'viewer']),
+})
+
+export const boardMemberRoleSchema = z.object({
+  role: z.enum(['editor', 'viewer']),
+})
+
+export const userIdSchema = z.string().uuid()

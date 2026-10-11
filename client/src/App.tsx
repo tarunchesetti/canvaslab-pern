@@ -26,7 +26,7 @@ import {
   Users,
 } from 'lucide-react'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
-import { ApiError, createBoard, deleteBoard, getBoards, getCollaborationToken, getCurrentUser, signIn, signOut, signUp, updateBoard, type Board, type User } from './api'
+import { addBoardMember, ApiError, createBoard, deleteBoard, getBoardMembers, getBoards, getCollaborationToken, getCurrentUser, removeBoardMember, signIn, signOut, signUp, updateBoard, updateBoardMemberRole, type Board, type BoardMember, type User } from './api'
 import type * as Yjs from 'yjs'
 import type { CanvasDocumentNode } from './collaboration-state'
 import '@xyflow/react/dist/style.css'
@@ -211,6 +211,7 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showCreateBoard, setShowCreateBoard] = useState(false)
+  const [showMembers, setShowMembers] = useState(false)
   const [creating, setCreating] = useState(false)
   const [showBoardList, setShowBoardList] = useState(false)
   const [boardListFilter, setBoardListFilter] = useState<'all' | 'shared'>('all')
@@ -327,8 +328,9 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
 
   return (
     <>
-      <BoardCanvas key={activeBoard.id} board={activeBoard} boards={boards} user={user} onSelectBoard={selectBoard} onCreateBoard={() => setShowCreateBoard(true)} onShowBoards={(filter) => { setBoardListFilter(filter); setShowBoardList(true) }} onEditBoard={setBoardAction} onLogout={() => void handleLogout()} />
+      <BoardCanvas key={activeBoard.id} board={activeBoard} boards={boards} user={user} onSelectBoard={selectBoard} onCreateBoard={() => setShowCreateBoard(true)} onManageMembers={() => setShowMembers(true)} onShowBoards={(filter) => { setBoardListFilter(filter); setShowBoardList(true) }} onEditBoard={setBoardAction} onLogout={() => void handleLogout()} />
       {showCreateBoard && <CreateBoardDialog onClose={() => setShowCreateBoard(false)} onCreate={handleCreateBoard} busy={creating} />}
+      {showMembers && <BoardMembersDialog board={activeBoard} currentUserId={user.id} canManage={activeBoard.role === 'owner'} onClose={() => setShowMembers(false)} />}
       {boardAction && activeBoard && <BoardActionDialog mode={boardAction} board={activeBoard} busy={updatingBoard} onClose={() => setBoardAction(null)} onRename={handleRenameBoard} onDelete={() => void handleDeleteBoard()} />}
       {showBoardList && <BoardListDialog boards={boards} filter={boardListFilter} onClose={() => setShowBoardList(false)} onSelect={(id) => { selectBoard(id); setShowBoardList(false) }} onCreate={() => { setShowBoardList(false); setShowCreateBoard(true) }} />}
       {error && <div className="api-toast" role="status">{error}</div>}
@@ -443,12 +445,112 @@ function BoardActionDialog({
   )
 }
 
+function BoardMembersDialog({
+  board,
+  currentUserId,
+  canManage,
+  onClose,
+}: {
+  board: Board
+  currentUserId: string
+  canManage: boolean
+  onClose: () => void
+}) {
+  const [members, setMembers] = useState<BoardMember[]>([])
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<'editor' | 'viewer'>('editor')
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    getBoardMembers(board.id)
+      .then((loadedMembers) => { if (active) setMembers(loadedMembers) })
+      .catch((loadError: unknown) => { if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load board members.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [board.id])
+
+  async function handleAdd(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      const member = await addBoardMember(board.id, email, role)
+      setMembers((currentMembers) => [...currentMembers, member])
+      setEmail('')
+    } catch (addError) {
+      setError(addError instanceof Error ? addError.message : 'Could not add that member.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function changeRole(member: BoardMember, nextRole: 'editor' | 'viewer') {
+    setBusy(true)
+    setError('')
+    try {
+      await updateBoardMemberRole(board.id, member.id, nextRole)
+      setMembers((currentMembers) => currentMembers.map((current) => current.id === member.id ? { ...current, role: nextRole } : current))
+    } catch (roleError) {
+      setError(roleError instanceof Error ? roleError.message : 'Could not update member role.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function removeMember(member: BoardMember) {
+    setBusy(true)
+    setError('')
+    try {
+      await removeBoardMember(board.id, member.id)
+      setMembers((currentMembers) => currentMembers.filter((current) => current.id !== member.id))
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : 'Could not remove member.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <section className="create-dialog members-dialog" role="dialog" aria-modal="true" aria-labelledby="members-title">
+        <button className="dialog-close" aria-label="Close" onClick={onClose}>×</button>
+        <div className="state-mark"><Users size={18} /></div>
+        <p className="auth-kicker">BOARD ACCESS</p>
+        <h2 id="members-title">People on this board</h2>
+        <p className="auth-subtitle">Add an existing CanvasLab account by email. This does not send an email invitation.</p>
+        {canManage && <form className="auth-form member-add-form" onSubmit={handleAdd}>
+          <label>Email address<input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="teammate@example.com" /></label>
+          <label>Access<select value={role} onChange={(event) => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></label>
+          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Adding…' : 'Add member'}<ArrowRight size={16} /></button>
+        </form>}
+        {error && <div className="auth-error members-error" role="alert">{error}</div>}
+        <div className="member-list" aria-live="polite">
+          {loading ? <div className="member-list-empty">Loading board members…</div> : members.length === 0 ? <div className="member-list-empty">No members found.</div> : members.map((member) => (
+            <div className="member-row" key={member.id}>
+              <span className="presence-avatar avatar-blue">{member.displayName.slice(0, 1).toUpperCase()}</span>
+              <span className="member-identity"><strong>{member.displayName}{member.id === currentUserId ? ' (you)' : ''}</strong><small>{member.email}</small></span>
+              {canManage && member.role !== 'owner'
+                ? <select aria-label={`Role for ${member.email}`} disabled={busy} value={member.role} onChange={(event) => void changeRole(member, event.target.value as 'editor' | 'viewer')}><option value="editor">Editor</option><option value="viewer">Viewer</option></select>
+                : <span className="board-list-role">{member.role}</span>}
+              {canManage && member.role !== 'owner' && member.id !== currentUserId && <button className="member-remove" disabled={busy} onClick={() => void removeMember(member)} aria-label={`Remove ${member.email}`} title="Remove member">×</button>}
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function BoardCanvas({
   board,
   boards,
   user,
   onSelectBoard,
   onCreateBoard,
+  onManageMembers,
   onShowBoards,
   onEditBoard,
   onLogout,
@@ -458,6 +560,7 @@ function BoardCanvas({
   user: User
   onSelectBoard: (boardId: string) => void
   onCreateBoard: () => void
+  onManageMembers: () => void
   onShowBoards: (filter: 'all' | 'shared') => void
   onEditBoard: (mode: 'rename' | 'delete') => void
   onLogout: () => void
@@ -719,6 +822,7 @@ function BoardCanvas({
           <div className="topbar-actions">
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
+            <button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> People</button>
             <button className="button button-dark" onClick={shareBoard}><Share2 size={15} /> {copied ? 'Copied' : 'Share'}</button>
           </div>
         </header>

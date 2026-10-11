@@ -380,6 +380,21 @@
 .danger-button:hover:not(:disabled) { background: #914538; }
 .danger-button:disabled { cursor: wait; opacity: 0.6; }
 .board-action-form { margin-top: 17px; }
+.members-dialog { width: min(100%, 520px); }
+.member-add-form { display: grid; grid-template-columns: minmax(0, 1fr) 140px; align-items: end; gap: 10px; margin: 16px 0; border-bottom: 1px solid #e8e9e3; padding-bottom: 17px; }
+.member-add-form .auth-submit { grid-column: 1 / -1; width: 100%; }
+.member-add-form select, .member-row select { height: 38px; border: 1px solid #e0e2dc; border-radius: 5px; background: #fff; padding: 0 9px; color: #44483f; font: 10px var(--body); }
+.member-list { display: grid; max-height: min(35vh, 280px); overflow-y: auto; }
+.member-list-empty { display: grid; min-height: 70px; place-items: center; color: #898c83; font-size: 10px; }
+.member-row { display: flex; min-height: 52px; align-items: center; gap: 9px; border-bottom: 1px solid #edeee9; padding: 5px 1px; }
+.member-row .presence-avatar { width: 28px; height: 28px; flex: 0 0 auto; margin: 0; }
+.member-identity { display: grid; min-width: 0; flex: 1; gap: 2px; }
+.member-identity strong { overflow: hidden; color: #41453e; font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.member-identity small { overflow: hidden; color: #8b8e85; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.member-remove { display: grid; width: 27px; height: 27px; place-items: center; border: 0; border-radius: 4px; background: transparent; color: #a85c4e; cursor: pointer; font-size: 18px; }
+.member-remove:hover:not(:disabled) { background: #fbefeb; }
+.member-remove:disabled { cursor: wait; opacity: 0.55; }
+.members-error { margin: 9px 0; }
 .api-toast { position: fixed; z-index: 15; right: 18px; bottom: 18px; max-width: min(400px, calc(100vw - 36px)); border: 1px solid #ead2c8; border-left: 3px solid #c7725c; border-radius: 5px; background: #fffaf7; box-shadow: 0 6px 20px #22251a12; padding: 11px 14px; color: #815043; font-size: 10px; }
 .board-link-title { overflow: hidden; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
 
