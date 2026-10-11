@@ -152,3 +152,18 @@ export async function completePasswordReset(token: string, password: string): Pr
     body: JSON.stringify({ token, password }),
   })
 }
+
+
+export async function inviteBoardMember(boardId: string, email: string, role: 'editor' | 'viewer'): Promise<{ email: string; role: 'editor' | 'viewer'; expiresInDays: number }> {
+  return (await request<{ invitation: { email: string; role: 'editor' | 'viewer'; expiresInDays: number } }>(`/boards/${encodeURIComponent(boardId)}/invitations`, {
+    method: 'POST',
+    body: JSON.stringify({ email, role }),
+  })).invitation
+}
+
+export async function acceptBoardInvitation(token: string): Promise<{ boardId: string; message: string }> {
+  return request<{ boardId: string; message: string }>('/boards/invitations/accept', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+}
