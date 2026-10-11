@@ -3,6 +3,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  NodeResizer,
   ReactFlow,
   useReactFlow,
   useNodesState,
@@ -26,8 +27,9 @@ import {
   Users,
 } from 'lucide-react'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
-import { addBoardMember, ApiError, createBoard, deleteBoard, getBoardMembers, getBoards, getCollaborationToken, getCurrentUser, removeBoardMember, signIn, signOut, signUp, updateBoard, updateBoardMemberRole, type Board, type BoardMember, type User } from './api'
+import { acceptBoardInvitation, inviteBoardMember, ApiError, createBoard, deleteBoard, getBoardMembers, getBoards, getCollaborationToken, getCurrentUser, removeBoardMember, requestPasswordReset, completePasswordReset, signIn, signOut, signUp, updateBoard, updateBoardMemberRole, type Board, type BoardMember, type User } from './api'
 import type * as Yjs from 'yjs'
+import { passwordsMatch } from './auth-validation'
 import type { CanvasDocumentNode } from './collaboration-state'
 import '@xyflow/react/dist/style.css'
 import './App.css'
@@ -36,18 +38,64 @@ type CanvasNode = Node<{
   title: string
   text: string
   tone?: string
+  language?: 'typescript' | 'javascript'
+  width?: number
+  height?: number
   readOnly?: boolean
 }, 'note' | 'code' | 'text'>
 
 type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasNodeSignature' | 'readNodesFromDocument' | 'syncNodesToDocument'>
 
+type RemoteCursor = { id: string; name: string; color: string; x: number; y: number }
+
+function CollaborationCursorLayer({ providerRef, wrapperRef, cursors }: {
+  providerRef: React.RefObject<HocuspocusProvider | null>
+  wrapperRef: React.RefObject<HTMLDivElement | null>
+  cursors: RemoteCursor[]
+}) {
+  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow<CanvasNode>()
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    const handlePointerMove = (event: PointerEvent) => {
+      const bounds = wrapper.getBoundingClientRect()
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      providerRef.current?.awareness?.setLocalStateField('cursor', position)
+    }
+    const handlePointerLeave = () => providerRef.current?.awareness?.setLocalStateField('cursor', null)
+    wrapper.addEventListener('pointermove', handlePointerMove)
+    wrapper.addEventListener('pointerleave', handlePointerLeave)
+    return () => {
+      wrapper.removeEventListener('pointermove', handlePointerMove)
+      wrapper.removeEventListener('pointerleave', handlePointerLeave)
+    }
+  }, [providerRef, screenToFlowPosition, wrapperRef])
+
+  const bounds = wrapperRef.current?.getBoundingClientRect()
+  if (!bounds) return null
+  return (
+    <div className="remote-cursor-layer" aria-hidden="true">
+      {cursors.map((cursor) => {
+        const point = flowToScreenPosition({ x: cursor.x, y: cursor.y })
+        return <div key={cursor.id} className="remote-cursor" style={{ left: point.x - bounds.left, top: point.y - bounds.top, color: cursor.color }}>
+          <svg width="15" height="18" viewBox="0 0 15 18" fill="currentColor"><path d="M1 1 L1 14 L5 10 L8 16 L11 14 L8 8 L14 8 Z" /></svg>
+          <span>{cursor.name}</span>
+        </div>
+      })}
+    </div>
+  )
+}
+
 const CodeEditor = lazy(() => import('./CodeEditor'))
 
-function NoteCard({ id, data }: NodeProps<CanvasNode>) {
+function NoteCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
 
   return (
-    <article className={`note-card ${data.tone ?? ''}`}>
+    <article className={`note-card ${data.tone ?? ''}`} style={{ width: data.width ?? 240, height: data.height ?? 170 }}>
+      <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={180} minHeight={120} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
       <div className="node-heading">
         <span className="node-grip" aria-hidden="true">⠿</span>
         <span>{data.title}</span>
@@ -66,33 +114,44 @@ function NoteCard({ id, data }: NodeProps<CanvasNode>) {
   )
 }
 
-function TextCard({ id, data }: NodeProps<CanvasNode>) {
+function TextCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
 
   return (
-    <textarea
+    <>
+      <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={140} minHeight={48} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
+      <textarea
+      style={{ width: data.width ?? 230, height: data.height ?? 70 }}
       className="canvas-text-node nodrag"
       aria-label={`${data.title} text`}
       value={data.text}
       readOnly={data.readOnly}
       onChange={(event) => updateNodeData(id, { text: event.target.value })}
     />
+    </>
   )
 }
 
-function CodeCard({ id, data }: NodeProps<CanvasNode>) {
+function CodeCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
 
   return (
-    <article className="code-card">
+    <article className="code-card" style={{ width: data.width ?? 290, height: data.height ?? 190 }}>
+      <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={220} minHeight={150} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
       <div className="code-heading">
         <div className="code-file"><Code2 size={14} /><span>{data.title}</span></div>
-        <span className="language-tag">TS</span>
+        <label className="language-picker-label">
+          <span className="sr-only">Code language</span>
+          <select aria-label="Code language" className="language-picker" disabled={data.readOnly} value={data.language ?? 'typescript'} onChange={(event) => updateNodeData(id, { language: event.target.value as 'typescript' | 'javascript' })}>
+            <option value="typescript">TypeScript</option>
+            <option value="javascript">JavaScript</option>
+          </select>
+        </label>
       </div>
       <Suspense fallback={<div className="editor-loading">Opening editor…</div>}>
-        <CodeEditor value={data.text} readOnly={data.readOnly} onChange={(value) => updateNodeData(id, { text: value })} />
+        <CodeEditor value={data.text} language={data.language ?? 'typescript'} readOnly={data.readOnly} onChange={(value) => updateNodeData(id, { text: value })} />
       </Suspense>
-      <div className="code-footer"><span><span className="green-dot" /> TypeScript</span><span>SHARED TEXT</span></div>
+      <div className="code-footer"><span><span className="green-dot" /> {data.language === 'javascript' ? 'JavaScript' : 'TypeScript'}</span><span>SHARED TEXT</span></div>
     </article>
   )
 }
@@ -136,24 +195,49 @@ function StartupScreen({ message }: { message: string }) {
 }
 
 function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user: User) => void; initialError: string }) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const resetToken = new URLSearchParams(window.location.search).get('resetToken')
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(() => resetToken ? 'reset' : 'login')
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(initialError)
+  const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSubmitting(true)
     setError('')
+    setNotice('')
+    if ((mode === 'register' || mode === 'reset') && !passwordsMatch(password, confirmPassword)) {
+      setError('Passwords do not match.')
+      return
+    }
+    setSubmitting(true)
     try {
+      if (mode === 'forgot') {
+        const result = await requestPasswordReset(email)
+        setNotice(result.message)
+        return
+      }
+      if (mode === 'reset') {
+        if (!resetToken) throw new Error('This password reset link is missing or invalid.')
+        const result = await completePasswordReset(resetToken, password)
+        setNotice(result.message)
+        setMode('login')
+        setPassword('')
+        setConfirmPassword('')
+        const url = new URL(window.location.href)
+        url.searchParams.delete('resetToken')
+        window.history.replaceState(null, '', url)
+        return
+      }
       const currentUser = mode === 'register'
         ? await signUp(displayName, email, password)
         : await signIn(email, password)
       onAuthenticated(currentUser)
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Could not sign in.')
+      setError(submitError instanceof Error ? submitError.message : 'Could not complete the request.')
     } finally {
       setSubmitting(false)
     }
@@ -181,21 +265,25 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
         <div className="auth-form-wrap">
           <div className="auth-mobile-brand"><span className="brand-mark"><Command size={17} /></span><span>canvas<span className="brand-light">lab</span></span></div>
           <div className="auth-kicker">YOUR WORKSPACE</div>
-          <h2>{mode === 'login' ? 'Welcome back' : 'Make room for ideas'}</h2>
-          <p className="auth-subtitle">{mode === 'login' ? 'Sign in to pick up where your team left off.' : 'Create an account to start a shared canvas.'}</p>
-          <div className="auth-mode-switch" role="tablist" aria-label="Account action">
-            <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError('') }}>Sign in</button>
-            <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError('') }}>Create account</button>
-          </div>
+          <h2>{mode === 'login' ? 'Welcome back' : mode === 'register' ? 'Make room for ideas' : mode === 'forgot' ? 'Reset your password' : 'Choose a new password'}</h2>
+          <p className="auth-subtitle">{mode === 'login' ? 'Sign in to pick up where your team left off.' : mode === 'register' ? 'Create an account to start a shared canvas.' : mode === 'forgot' ? 'We’ll send a reset link if an account matches your email.' : 'Choose a new password for your account.'}</p>
+          {(mode === 'login' || mode === 'register') && <div className="auth-mode-switch" role="tablist" aria-label="Account action">
+            <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError(''); setNotice(''); setPassword(''); setConfirmPassword('') }}>Sign in</button>
+            <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError(''); setNotice(''); setPassword(''); setConfirmPassword('') }}>Create account</button>
+          </div>}
           <form className="auth-form" onSubmit={handleSubmit}>
             {mode === 'register' && <label>Name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={80} placeholder="How should we call you?" /></label>}
-            <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>
-            <label>Password<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' ? 12 : 1} maxLength={72} placeholder={mode === 'register' ? 'At least 12 characters' : 'Your password'} /></label>
+            {mode !== 'reset' && <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>}
+            {mode !== 'forgot' && <label>Password<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' || mode === 'reset' ? 12 : 1} maxLength={72} placeholder={mode === 'register' || mode === 'reset' ? 'At least 12 characters' : 'Your password'} /></label>}
+            {(mode === 'register' || mode === 'reset') && <label>Confirm password<input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword)} />{confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword) && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
+            {mode === 'login' && <button type="button" className="auth-link" onClick={() => { setMode('forgot'); setError(''); setNotice('') }}>Forgot password?</button>}
+            {notice && <div className="auth-notice" role="status">{notice}</div>}
             {error && <div className="auth-error" role="alert">{error}</div>}
             <button className="auth-submit" type="submit" disabled={submitting}>
-              {submitting ? 'Connecting…' : mode === 'login' ? 'Sign in to CanvasLab' : 'Create your account'}
+              {submitting ? 'Please wait…' : mode === 'login' ? 'Sign in to CanvasLab' : mode === 'register' ? 'Create your account' : mode === 'forgot' ? 'Send reset link' : 'Update password'}
               {submitting ? <LoaderCircle className="loading-icon" size={16} /> : <ArrowRight size={16} />}
             </button>
+            {(mode === 'forgot' || mode === 'reset') && <button type="button" className="auth-link" onClick={() => { setMode('login'); setError(''); setNotice(''); setPassword(''); setConfirmPassword('') }}>Back to sign in</button>}
           </form>
           <div className="auth-security">Your boards are private to your account.</div>
         </div>
@@ -237,20 +325,32 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
 
   useEffect(() => {
     let active = true
-    getBoards()
-      .then((userBoards) => {
+    async function initializeWorkspace() {
+      try {
+        const url = new URL(window.location.href)
+        const invitationToken = url.searchParams.get('inviteToken')
+        let acceptedBoardId: string | null = null
+        if (invitationToken) {
+          const accepted = await acceptBoardInvitation(invitationToken)
+          acceptedBoardId = accepted.boardId
+          url.searchParams.delete('inviteToken')
+          url.searchParams.set('board', acceptedBoardId)
+          window.history.replaceState(null, '', url)
+        }
+        const userBoards = await getBoards()
         if (!active) return
         setBoards(userBoards)
         setError('')
-        const requestedBoardId = new URLSearchParams(window.location.search).get('board')
+        const requestedBoardId = acceptedBoardId ?? url.searchParams.get('board')
         const requestedBoard = userBoards.find((board) => board.id === requestedBoardId)
         setActiveBoardId((currentId) => requestedBoard?.id ?? (userBoards.some((board) => board.id === currentId) ? currentId : userBoards[0]?.id ?? ''))
-      })
-      .catch((loadError: unknown) => {
-        if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load boards.')
-      })
-      .finally(() => { if (active) setLoading(false) })
-
+      } catch (loadError) {
+        if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load boards or accept the invitation.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    void initializeWorkspace()
     return () => { active = false }
   }, [])
 
@@ -462,6 +562,7 @@ function BoardMembersDialog({
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     let active = true
@@ -476,12 +577,13 @@ function BoardMembersDialog({
     event.preventDefault()
     setBusy(true)
     setError('')
+    setNotice('')
     try {
-      const member = await addBoardMember(board.id, email, role)
-      setMembers((currentMembers) => [...currentMembers, member])
+      const invitation = await inviteBoardMember(board.id, email, role)
+      setNotice(`Invitation sent to ${invitation.email}. The link expires in ${invitation.expiresInDays} days.`)
       setEmail('')
     } catch (addError) {
-      setError(addError instanceof Error ? addError.message : 'Could not add that member.')
+      setError(addError instanceof Error ? addError.message : 'Could not send that invitation.')
     } finally {
       setBusy(false)
     }
@@ -520,12 +622,13 @@ function BoardMembersDialog({
         <div className="state-mark"><Users size={18} /></div>
         <p className="auth-kicker">BOARD ACCESS</p>
         <h2 id="members-title">People on this board</h2>
-        <p className="auth-subtitle">Add an existing CanvasLab account by email. This does not send an email invitation.</p>
+        <p className="auth-subtitle">Invite anyone by email. They can register or sign in to accept the invitation.</p>
         {canManage && <form className="auth-form member-add-form" onSubmit={handleAdd}>
           <label>Email address<input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="teammate@example.com" /></label>
           <label>Access<select value={role} onChange={(event) => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></label>
-          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Adding…' : 'Add member'}<ArrowRight size={16} /></button>
+          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Send invitation'}<ArrowRight size={16} /></button>
         </form>}
+        {notice && <div className="auth-notice" role="status">{notice}</div>}
         {error && <div className="auth-error members-error" role="alert">{error}</div>}
         <div className="member-list" aria-live="polite">
           {loading ? <div className="member-list-empty">Loading board members…</div> : members.length === 0 ? <div className="member-list-empty">No members found.</div> : members.map((member) => (
@@ -577,6 +680,9 @@ function BoardCanvas({
   const [collaborationError, setCollaborationError] = useState('')
   const canInteract = canEdit && collaborationReady
   const [collaborators, setCollaborators] = useState<{ id: string; name: string; color: string }[]>([])
+  const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([])
+  const providerRef = useRef<HocuspocusProvider | null>(null)
+  const canvasWrapperRef = useRef<HTMLDivElement | null>(null)
   const documentRef = useRef<Yjs.Doc | null>(null)
   const sharedNodesRef = useRef<Yjs.Map<Yjs.Map<unknown>> | null>(null)
   const collaborationBridgeRef = useRef<CollaborationBridge | null>(null)
@@ -616,6 +722,7 @@ function BoardCanvas({
           document,
           token: getCollaborationToken,
         })
+        providerRef.current = provider
         provider.awareness?.setLocalStateField('user', {
           id: user.id,
           name: user.displayName,
@@ -649,9 +756,10 @@ function BoardCanvas({
           setCollaborationReady(true)
           setCollaborationStatus('connected')
         })
-        provider.on('awarenessUpdate', ({ states }: { states: { clientId: number; user?: { id?: string; name?: string; color?: string } }[] }) => {
+        provider.on('awarenessUpdate', ({ states }: { states: { clientId: number; user?: { id?: string; name?: string; color?: string }; cursor?: { x?: number; y?: number } | null }[] }) => {
           if (!active) return
           const usersById = new Map<string, { id: string; name: string; color: string }>()
+          const cursorsById = new Map<string, RemoteCursor>()
           for (const state of states) {
             const collaborator = state.user
             if (!collaborator?.id || !collaborator.name) continue
@@ -660,8 +768,12 @@ function BoardCanvas({
               name: collaborator.name,
               color: collaborator.color ?? '#93a17e',
             })
+            if (collaborator.id !== user.id && typeof state.cursor?.x === 'number' && typeof state.cursor?.y === 'number') {
+              cursorsById.set(collaborator.id, { id: collaborator.id, name: collaborator.name, color: collaborator.color ?? '#93a17e', x: state.cursor.x, y: state.cursor.y })
+            }
           }
           setCollaborators([...usersById.values()])
+          setRemoteCursors([...cursorsById.values()])
         })
         provider.on('authenticationFailed', ({ reason }: { reason: string }) => {
           if (!active) return
@@ -681,7 +793,9 @@ function BoardCanvas({
       active = false
       stopObserving?.()
       provider?.destroy()
+      providerRef.current = null
       document?.destroy()
+      setRemoteCursors([])
       documentRef.current = null
       sharedNodesRef.current = null
       collaborationBridgeRef.current = null
@@ -745,20 +859,20 @@ function BoardCanvas({
           id,
           type,
           position,
-          data: { title: 'New thought', text: 'Write an idea…', tone: 'note-lemon' },
+          data: { title: 'New thought', text: 'Write an idea…', tone: 'note-lemon', width: size.width, height: size.height },
         }
       : type === 'text'
         ? {
             id,
             type,
             position,
-            data: { title: 'Text', text: 'Type something…' },
+            data: { title: 'Text', text: 'Type something…', width: size.width, height: size.height },
           }
         : {
           id,
           type,
           position,
-          data: { title: 'untitled.ts', text: '// Start sketching here' },
+          data: { title: 'untitled.ts', text: '// Start sketching here', language: 'typescript', width: size.width, height: size.height },
         }
 
     setNodes((currentNodes) => [...currentNodes, newNode])
@@ -832,7 +946,7 @@ function BoardCanvas({
           <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
-        <div className="board-canvas-wrap">
+        <div className="board-canvas-wrap" ref={canvasWrapperRef}>
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <span className="tool-divider" />
@@ -861,6 +975,7 @@ function BoardCanvas({
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#d8d9d5" />
             <Controls position="bottom-right" showInteractive={false} />
+            <CollaborationCursorLayer providerRef={providerRef} wrapperRef={canvasWrapperRef} cursors={remoteCursors} />
           </ReactFlow>
           <div className="canvas-hint"><MousePointer2 size={13} /> Drag anything to make room for a new idea</div>
         </div>
