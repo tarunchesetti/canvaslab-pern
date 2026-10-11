@@ -36,6 +36,7 @@ type CanvasNode = Node<{
   title: string
   text: string
   tone?: string
+  language?: 'typescript' | 'javascript'
   readOnly?: boolean
 }, 'note' | 'code' | 'text'>
 
@@ -87,12 +88,18 @@ function CodeCard({ id, data }: NodeProps<CanvasNode>) {
     <article className="code-card">
       <div className="code-heading">
         <div className="code-file"><Code2 size={14} /><span>{data.title}</span></div>
-        <span className="language-tag">TS</span>
+        <label className="language-picker-label">
+          <span className="sr-only">Code language</span>
+          <select aria-label="Code language" className="language-picker" disabled={data.readOnly} value={data.language ?? 'typescript'} onChange={(event) => updateNodeData(id, { language: event.target.value as 'typescript' | 'javascript' })}>
+            <option value="typescript">TypeScript</option>
+            <option value="javascript">JavaScript</option>
+          </select>
+        </label>
       </div>
       <Suspense fallback={<div className="editor-loading">Opening editor…</div>}>
-        <CodeEditor value={data.text} readOnly={data.readOnly} onChange={(value) => updateNodeData(id, { text: value })} />
+        <CodeEditor value={data.text} language={data.language ?? 'typescript'} readOnly={data.readOnly} onChange={(value) => updateNodeData(id, { text: value })} />
       </Suspense>
-      <div className="code-footer"><span><span className="green-dot" /> TypeScript</span><span>SHARED TEXT</span></div>
+      <div className="code-footer"><span><span className="green-dot" /> {data.language === 'javascript' ? 'JavaScript' : 'TypeScript'}</span><span>SHARED TEXT</span></div>
     </article>
   )
 }
@@ -140,13 +147,18 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(initialError)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSubmitting(true)
     setError('')
+    if (mode === 'register' && password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    setSubmitting(true)
     try {
       const currentUser = mode === 'register'
         ? await signUp(displayName, email, password)
@@ -184,13 +196,14 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
           <h2>{mode === 'login' ? 'Welcome back' : 'Make room for ideas'}</h2>
           <p className="auth-subtitle">{mode === 'login' ? 'Sign in to pick up where your team left off.' : 'Create an account to start a shared canvas.'}</p>
           <div className="auth-mode-switch" role="tablist" aria-label="Account action">
-            <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError('') }}>Sign in</button>
-            <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError('') }}>Create account</button>
+            <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError(''); setPassword(''); setConfirmPassword('') }}>Sign in</button>
+            <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError(''); setPassword(''); setConfirmPassword('') }}>Create account</button>
           </div>
           <form className="auth-form" onSubmit={handleSubmit}>
             {mode === 'register' && <label>Name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={80} placeholder="How should we call you?" /></label>}
             <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>
             <label>Password<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' ? 12 : 1} maxLength={72} placeholder={mode === 'register' ? 'At least 12 characters' : 'Your password'} /></label>
+            {mode === 'register' && <label>Confirm password<input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && password !== confirmPassword} />{confirmPassword.length > 0 && password !== confirmPassword && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
             {error && <div className="auth-error" role="alert">{error}</div>}
             <button className="auth-submit" type="submit" disabled={submitting}>
               {submitting ? 'Connecting…' : mode === 'login' ? 'Sign in to CanvasLab' : 'Create your account'}
