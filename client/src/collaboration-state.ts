@@ -4,7 +4,7 @@ export interface CanvasDocumentNode {
   id: string
   type?: string
   position: { x: number; y: number }
-  data: { title: string; text: string; tone?: string }
+  data: { title: string; text: string; tone?: string; width?: number; height?: number; language?: 'typescript' | 'javascript' }
 }
 
 function nestedMap(parent: Y.Map<unknown>, key: string): Y.Map<unknown> {
@@ -55,6 +55,12 @@ function updateSharedNode(record: Y.Map<unknown>, node: CanvasDocumentNode) {
   setIfChanged(data, 'title', node.data.title)
   if (node.data.tone) setIfChanged(data, 'tone', node.data.tone)
   else if (data.has('tone')) data.delete('tone')
+  if (node.data.width !== undefined) setIfChanged(data, 'width', node.data.width)
+  else if (data.has('width')) data.delete('width')
+  if (node.data.height !== undefined) setIfChanged(data, 'height', node.data.height)
+  else if (data.has('height')) data.delete('height')
+  if (node.data.language) setIfChanged(data, 'language', node.data.language)
+  else if (data.has('language')) data.delete('language')
 
   const sharedText = data.get('text')
   if (sharedText instanceof Y.Text) {
@@ -108,6 +114,9 @@ export function readNodesFromDocument(sharedNodes: Y.Map<Y.Map<unknown>>): Canva
         title: String(data.get('title') ?? 'Untitled'),
         text: sharedText instanceof Y.Text ? sharedText.toString() : String(sharedText ?? ''),
         ...(typeof data.get('tone') === 'string' ? { tone: data.get('tone') as string } : {}),
+        ...(typeof data.get('width') === 'number' ? { width: data.get('width') as number } : {}),
+        ...(typeof data.get('height') === 'number' ? { height: data.get('height') as number } : {}),
+        ...(data.get('language') === 'javascript' || data.get('language') === 'typescript' ? { language: data.get('language') as 'javascript' | 'typescript' } : {}),
       },
     })
   })
