@@ -3,6 +3,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { Router, type Request } from 'express'
 import type { Pool } from 'pg'
 import type { Environment } from '../config.js'
+import { isEmailConfigured, sendTransactionalEmail } from '../email.js'
 import { requireAuth } from '../auth.js'
 import { createCollaborationToken } from '../collaboration-token.js'
 import { loginSchema, passwordResetCompleteSchema, passwordResetRequestSchema, registerSchema } from '../validation.js'
@@ -92,10 +93,7 @@ export function createAuthRouter(pool: Pool, sessionSecret: string, configuratio
       return
     }
 
-    if (
-      (!configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL || !configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET)
-      && configuration.NODE_ENV !== 'development'
-    ) {
+    if (!isEmailConfigured(configuration) && configuration.NODE_ENV !== 'development') {
       response.status(503).json({ error: 'Password recovery email is not configured. Contact the server administrator.' })
       return
     }
@@ -124,7 +122,7 @@ export function createAuthRouter(pool: Pool, sessionSecret: string, configuratio
 
     // In local development, expose a one-time reset link in the response so the flow
     // can be tested without configuring an email provider. Never do this in production.
-    if (!configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL || !configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET) {
+    if (!isEmailConfigured(configuration)) {
       response.status(202).json({
         message: 'For local development, use the reset link below. It expires in 30 minutes.',
         resetUrl: resetUrl.toString(),
@@ -133,20 +131,12 @@ export function createAuthRouter(pool: Pool, sessionSecret: string, configuratio
     }
 
     try {
-      const delivery = await fetch(configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET}`,
-        },
-        body: JSON.stringify({
-          to: user.email,
-          subject: 'Reset your CanvasLab password',
-          text: `Use this link to reset your CanvasLab password. It expires in 30 minutes: ${resetUrl.toString()}`,
-          html: `<p>Use the link below to reset your CanvasLab password. It expires in 30 minutes.</p><p><a href="${resetUrl.toString()}">Reset password</a></p>`,
-        }),
+      await sendTransactionalEmail(configuration, {
+        to: user.email,
+        subject: 'Reset your CanvasLab password',
+        text: `Use this link to reset your CanvasLab password. It expires in 30 minutes: ${resetUrl.toString()}`,
+        html: `<p>Use the link below to reset your CanvasLab password. It expires in 30 minutes.</p><p><a href="${resetUrl.toString()}">Reset password</a></p>`,
       })
-      if (!delivery.ok) throw new Error(`Password reset email delivery returned HTTP ${delivery.status}`)
     } catch (error) {
       await pool.query('DELETE FROM password_reset_tokens WHERE id = $1', [tokenId])
       console.error('Password reset email delivery failed', error)
