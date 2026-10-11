@@ -1,6 +1,8 @@
 import 'dotenv/config'
 import { z } from 'zod'
 
+const optionalString = z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional())
+
 const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   SERVICE_ROLE: z.enum(['both', 'api', 'collab']).default('both'),
@@ -10,11 +12,12 @@ const environmentSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   CLIENT_ORIGIN: z.string().url().default('http://localhost:5173'),
   APP_BASE_URL: z.string().url().default('http://localhost:5173'),
-  SEND_API_KEY: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
-  RESEND_API_KEY: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
-  EMAIL_FROM: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
+  EMAIL_FROM: optionalString,
+  GMAIL_CLIENT_ID: optionalString,
+  GMAIL_CLIENT_SECRET: optionalString,
+  GMAIL_REFRESH_TOKEN: optionalString,
   PASSWORD_RESET_EMAIL_WEBHOOK_URL: z.preprocess((value) => value === '' ? undefined : value, z.string().url().optional()),
-  PASSWORD_RESET_EMAIL_WEBHOOK_SECRET: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
+  PASSWORD_RESET_EMAIL_WEBHOOK_SECRET: optionalString,
 })
 
 export const environment = environmentSchema.parse(process.env)
