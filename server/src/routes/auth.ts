@@ -92,8 +92,11 @@ export function createAuthRouter(pool: Pool, sessionSecret: string, configuratio
       return
     }
 
-    if (!configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL || !configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET) {
-      response.status(503).json({ error: 'Password recovery is not configured on this server yet.' })
+    if (
+      (!configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL || !configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET)
+      && configuration.NODE_ENV !== 'development'
+    ) {
+      response.status(503).json({ error: 'Password recovery email is not configured. Contact the server administrator.' })
       return
     }
 
@@ -118,6 +121,17 @@ export function createAuthRouter(pool: Pool, sessionSecret: string, configuratio
 
     const resetUrl = new URL('/', configuration.APP_BASE_URL)
     resetUrl.searchParams.set('resetToken', token)
+
+    // In local development, expose a one-time reset link in the response so the flow
+    // can be tested without configuring an email provider. Never do this in production.
+    if (!configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL || !configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET) {
+      response.status(202).json({
+        message: 'For local development, use the reset link below. It expires in 30 minutes.',
+        resetUrl: resetUrl.toString(),
+      })
+      return
+    }
+
     try {
       const delivery = await fetch(configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL, {
         method: 'POST',
