@@ -1,8 +1,9 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import type { Pool } from 'pg'
+import type { Environment } from '../config.js'
 import { requireAuth, sessionUserId } from '../auth.js'
-import { boardIdSchema, boardMemberRoleSchema, boardMemberSchema, createBoardSchema, updateBoardSchema, userIdSchema } from '../validation.js'
+import { acceptBoardInvitationSchema, boardIdSchema, boardInvitationSchema, boardMemberRoleSchema, boardMemberSchema, createBoardSchema, updateBoardSchema, userIdSchema } from '../validation.js'
 
 type BoardRole = 'owner' | 'editor' | 'viewer'
 
@@ -52,9 +53,54 @@ function parseUserId(value: string): string | null {
   return parsed.success ? parsed.data : null
 }
 
-export function createBoardsRouter(pool: Pool): Router {
+export function createBoardsRouter(pool: Pool, configuration: Environment): Router {
   const router = Router()
   router.use(requireAuth)
+
+  router.post('/invitations/accept', async (request, response) => {
+    const parsed = acceptBoardInvitationSchema.safeParse(request.body)
+    if (!parsed.success) {
+      response.status(400).json({ error: 'Invalid or expired invitation' })
+      return
+    }
+
+    const tokenHash = createHash('sha256').update(parsed.data.token).digest('hex')
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      const invitationResult = await client.query<{ id: string; board_id: string; email: string; role: 'editor' | 'viewer' }>(
+        'SELECT id, board_id, email, role FROM board_invitations WHERE token_hash = $1 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > NOW() FOR UPDATE',
+        [tokenHash],
+      )
+      const invitation = invitationResult.rows[0]
+      if (!invitation) {
+        await client.query('ROLLBACK')
+        response.status(400).json({ error: 'Invalid or expired invitation' })
+        return
+      }
+
+      const userResult = await client.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [sessionUserId(request)])
+      if (!userResult.rows[0] || userResult.rows[0].email.toLowerCase() !== invitation.email.toLowerCase()) {
+        await client.query('ROLLBACK')
+        response.status(403).json({ error: 'Sign in with the email address this invitation was sent to.' })
+        return
+      }
+
+      await client.query(
+        'INSERT INTO board_members (board_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT (board_id, user_id) DO NOTHING',
+        [invitation.board_id, sessionUserId(request), invitation.role],
+      )
+      await client.query('UPDATE board_invitations SET accepted_at = NOW() WHERE id = $1', [invitation.id])
+      await client.query('UPDATE boards SET updated_at = NOW() WHERE id = $1', [invitation.board_id])
+      await client.query('COMMIT')
+      response.json({ boardId: invitation.board_id, message: 'Invitation accepted.' })
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
+  })
 
   router.get('/', async (request, response) => {
     const result = await pool.query<BoardSummary>(
@@ -199,6 +245,73 @@ export function createBoardsRouter(pool: Pool): Router {
       role: member.role,
       addedAt: member.created_at,
     })) })
+  })
+
+  router.post('/:boardId/invitations', async (request, response) => {
+    const boardId = parseBoardId(request.params.boardId!)
+    const parsed = boardInvitationSchema.safeParse(request.body)
+    if (!boardId || !parsed.success) {
+      response.status(400).json({ error: 'Invalid board id, email, or role' })
+      return
+    }
+
+    const requesterId = sessionUserId(request)
+    const requesterRole = await getMembership(pool, boardId, requesterId)
+    if (!requesterRole) {
+      response.status(404).json({ error: 'Board not found' })
+      return
+    }
+    if (requesterRole !== 'owner') {
+      response.status(403).json({ error: 'Only the board owner can invite collaborators' })
+      return
+    }
+    if (!configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL || !configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET) {
+      response.status(503).json({ error: 'Email delivery is not configured on this server yet.' })
+      return
+    }
+
+    const email = parsed.data.email.toLowerCase()
+    const existingMember = await pool.query(
+      'SELECT 1 FROM board_members m JOIN users u ON u.id = m.user_id WHERE m.board_id = $1 AND LOWER(u.email) = $2',
+      [boardId, email],
+    )
+    if (existingMember.rowCount) {
+      response.status(409).json({ error: 'That account is already a member of this board.' })
+      return
+    }
+
+    const boardResult = await pool.query<{ title: string }>('SELECT title FROM boards WHERE id = $1', [boardId])
+    const inviterResult = await pool.query<{ display_name: string }>('SELECT display_name FROM users WHERE id = $1', [requesterId])
+    const token = randomBytes(32).toString('base64url')
+    const tokenHash = createHash('sha256').update(token).digest('hex')
+    const invitationId = randomUUID()
+    await pool.query(
+      'INSERT INTO board_invitations (id, board_id, email, role, invited_by, token_hash, expires_at) VALUES ($1, $2, $3, $4, $5, $6, NOW() + INTERVAL \'7 days\')',
+      [invitationId, boardId, email, parsed.data.role, requesterId, tokenHash],
+    )
+
+    const invitationUrl = new URL('/', configuration.APP_BASE_URL)
+    invitationUrl.searchParams.set('inviteToken', token)
+    try {
+      const delivery = await fetch(configuration.PASSWORD_RESET_EMAIL_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${configuration.PASSWORD_RESET_EMAIL_WEBHOOK_SECRET}` },
+        body: JSON.stringify({
+          to: email,
+          subject: `You’re invited to collaborate on ${boardResult.rows[0]?.title ?? 'a CanvasLab board'}`,
+          text: `${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}. Sign in or create an account using ${email}, then accept the invitation here: ${invitationUrl.toString()}. This link expires in 7 days.`,
+          html: `<p>${inviterResult.rows[0]?.display_name ?? 'A CanvasLab user'} invited you to a board as ${parsed.data.role}.</p><p>Sign in or create an account using ${email}, then <a href="${invitationUrl.toString()}">accept the invitation</a>. This link expires in 7 days.</p>`,
+        }),
+      })
+      if (!delivery.ok) throw new Error(`Invitation email delivery returned HTTP ${delivery.status}`)
+    } catch (error) {
+      await pool.query('UPDATE board_invitations SET revoked_at = NOW() WHERE id = $1', [invitationId])
+      console.error('Board invitation email delivery failed', error)
+      response.status(502).json({ error: 'Could not send the invitation email. Check the configured email delivery service.' })
+      return
+    }
+
+    response.status(201).json({ invitation: { email, role: parsed.data.role, expiresInDays: 7 } })
   })
 
   router.post('/:boardId/members', async (request, response) => {
