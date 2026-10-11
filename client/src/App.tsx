@@ -46,6 +46,48 @@ type CanvasNode = Node<{
 
 type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasNodeSignature' | 'readNodesFromDocument' | 'syncNodesToDocument'>
 
+type RemoteCursor = { id: string; name: string; color: string; x: number; y: number }
+
+function CollaborationCursorLayer({ providerRef, wrapperRef, cursors }: {
+  providerRef: React.RefObject<HocuspocusProvider | null>
+  wrapperRef: React.RefObject<HTMLDivElement | null>
+  cursors: RemoteCursor[]
+}) {
+  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow<CanvasNode>()
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    const handlePointerMove = (event: PointerEvent) => {
+      const bounds = wrapper.getBoundingClientRect()
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      providerRef.current?.awareness?.setLocalStateField('cursor', position)
+    }
+    const handlePointerLeave = () => providerRef.current?.awareness?.setLocalStateField('cursor', null)
+    wrapper.addEventListener('pointermove', handlePointerMove)
+    wrapper.addEventListener('pointerleave', handlePointerLeave)
+    return () => {
+      wrapper.removeEventListener('pointermove', handlePointerMove)
+      wrapper.removeEventListener('pointerleave', handlePointerLeave)
+    }
+  }, [providerRef, screenToFlowPosition, wrapperRef])
+
+  const bounds = wrapperRef.current?.getBoundingClientRect()
+  if (!bounds) return null
+  return (
+    <div className="remote-cursor-layer" aria-hidden="true">
+      {cursors.map((cursor) => {
+        const point = flowToScreenPosition({ x: cursor.x, y: cursor.y })
+        return <div key={cursor.id} className="remote-cursor" style={{ left: point.x - bounds.left, top: point.y - bounds.top, color: cursor.color }}>
+          <svg width="15" height="18" viewBox="0 0 15 18" fill="currentColor"><path d="M1 1 L1 14 L5 10 L8 16 L11 14 L8 8 L14 8 Z" /></svg>
+          <span>{cursor.name}</span>
+        </div>
+      })}
+    </div>
+  )
+}
+
 const CodeEditor = lazy(() => import('./CodeEditor'))
 
 function NoteCard({ id, data, selected }: NodeProps<CanvasNode>) {
@@ -600,6 +642,9 @@ function BoardCanvas({
   const [collaborationError, setCollaborationError] = useState('')
   const canInteract = canEdit && collaborationReady
   const [collaborators, setCollaborators] = useState<{ id: string; name: string; color: string }[]>([])
+  const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([])
+  const providerRef = useRef<HocuspocusProvider | null>(null)
+  const canvasWrapperRef = useRef<HTMLDivElement | null>(null)
   const documentRef = useRef<Yjs.Doc | null>(null)
   const sharedNodesRef = useRef<Yjs.Map<Yjs.Map<unknown>> | null>(null)
   const collaborationBridgeRef = useRef<CollaborationBridge | null>(null)
@@ -639,6 +684,7 @@ function BoardCanvas({
           document,
           token: getCollaborationToken,
         })
+        providerRef.current = provider
         provider.awareness?.setLocalStateField('user', {
           id: user.id,
           name: user.displayName,
@@ -672,9 +718,10 @@ function BoardCanvas({
           setCollaborationReady(true)
           setCollaborationStatus('connected')
         })
-        provider.on('awarenessUpdate', ({ states }: { states: { clientId: number; user?: { id?: string; name?: string; color?: string } }[] }) => {
+        provider.on('awarenessUpdate', ({ states }: { states: { clientId: number; user?: { id?: string; name?: string; color?: string }; cursor?: { x?: number; y?: number } | null }[] }) => {
           if (!active) return
           const usersById = new Map<string, { id: string; name: string; color: string }>()
+          const cursorsById = new Map<string, RemoteCursor>()
           for (const state of states) {
             const collaborator = state.user
             if (!collaborator?.id || !collaborator.name) continue
@@ -683,8 +730,12 @@ function BoardCanvas({
               name: collaborator.name,
               color: collaborator.color ?? '#93a17e',
             })
+            if (collaborator.id !== user.id && typeof state.cursor?.x === 'number' && typeof state.cursor?.y === 'number') {
+              cursorsById.set(collaborator.id, { id: collaborator.id, name: collaborator.name, color: collaborator.color ?? '#93a17e', x: state.cursor.x, y: state.cursor.y })
+            }
           }
           setCollaborators([...usersById.values()])
+          setRemoteCursors([...cursorsById.values()])
         })
         provider.on('authenticationFailed', ({ reason }: { reason: string }) => {
           if (!active) return
@@ -704,7 +755,9 @@ function BoardCanvas({
       active = false
       stopObserving?.()
       provider?.destroy()
+      providerRef.current = null
       document?.destroy()
+      setRemoteCursors([])
       documentRef.current = null
       sharedNodesRef.current = null
       collaborationBridgeRef.current = null
@@ -855,7 +908,7 @@ function BoardCanvas({
           <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
-        <div className="board-canvas-wrap">
+        <div className="board-canvas-wrap" ref={canvasWrapperRef}>
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <span className="tool-divider" />
@@ -884,6 +937,7 @@ function BoardCanvas({
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#d8d9d5" />
             <Controls position="bottom-right" showInteractive={false} />
+            <CollaborationCursorLayer providerRef={providerRef} wrapperRef={canvasWrapperRef} cursors={remoteCursors} />
           </ReactFlow>
           <div className="canvas-hint"><MousePointer2 size={13} /> Drag anything to make room for a new idea</div>
         </div>
