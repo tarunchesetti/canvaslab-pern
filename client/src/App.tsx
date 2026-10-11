@@ -325,20 +325,32 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
 
   useEffect(() => {
     let active = true
-    getBoards()
-      .then((userBoards) => {
+    async function initializeWorkspace() {
+      try {
+        const url = new URL(window.location.href)
+        const invitationToken = url.searchParams.get('inviteToken')
+        let acceptedBoardId: string | null = null
+        if (invitationToken) {
+          const accepted = await acceptBoardInvitation(invitationToken)
+          acceptedBoardId = accepted.boardId
+          url.searchParams.delete('inviteToken')
+          url.searchParams.set('board', acceptedBoardId)
+          window.history.replaceState(null, '', url)
+        }
+        const userBoards = await getBoards()
         if (!active) return
         setBoards(userBoards)
         setError('')
-        const requestedBoardId = new URLSearchParams(window.location.search).get('board')
+        const requestedBoardId = acceptedBoardId ?? url.searchParams.get('board')
         const requestedBoard = userBoards.find((board) => board.id === requestedBoardId)
         setActiveBoardId((currentId) => requestedBoard?.id ?? (userBoards.some((board) => board.id === currentId) ? currentId : userBoards[0]?.id ?? ''))
-      })
-      .catch((loadError: unknown) => {
-        if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load boards.')
-      })
-      .finally(() => { if (active) setLoading(false) })
-
+      } catch (loadError) {
+        if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load boards or accept the invitation.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    void initializeWorkspace()
     return () => { active = false }
   }, [])
 
