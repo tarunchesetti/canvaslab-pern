@@ -70,3 +70,8 @@ npm test --prefix server
 1. Start PostgreSQL and exercise migrations, authentication, board APIs, and Yjs snapshot persistence end to end.
 2. Verify two-browser simultaneous editing, reconnect recovery, and viewer enforcement against PostgreSQL.
 3. Add real invitations, cursor visualization, deployment, and architecture documentation.
+
+
+## Password recovery email delivery
+
+Password recovery uses the new password reset token migration and a configurable email webhook. Configure `APP_BASE_URL` to the public client URL, `PASSWORD_RESET_EMAIL_WEBHOOK_URL` to a trusted server-side mail adapter, and `PASSWORD_RESET_EMAIL_WEBHOOK_SECRET` to its bearer-token secret. The adapter receives a JSON POST with `to`, `subject`, `text`, and `html`; it should return a 2xx status only after accepting the email. Keep the webhook URL and secret private. Without both webhook variables, the API returns a configuration error for password-reset requests. Reset tokens are stored hashed, expire after 30 minutes, are single-use, and completing a reset invalidates existing user sessions.
