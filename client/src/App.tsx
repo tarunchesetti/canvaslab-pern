@@ -27,7 +27,7 @@ import {
   Users,
 } from 'lucide-react'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
-import { addBoardMember, ApiError, createBoard, deleteBoard, getBoardMembers, getBoards, getCollaborationToken, getCurrentUser, removeBoardMember, requestPasswordReset, completePasswordReset, signIn, signOut, signUp, updateBoard, updateBoardMemberRole, type Board, type BoardMember, type User } from './api'
+import { acceptBoardInvitation, inviteBoardMember, ApiError, createBoard, deleteBoard, getBoardMembers, getBoards, getCollaborationToken, getCurrentUser, removeBoardMember, requestPasswordReset, completePasswordReset, signIn, signOut, signUp, updateBoard, updateBoardMemberRole, type Board, type BoardMember, type User } from './api'
 import type * as Yjs from 'yjs'
 import { passwordsMatch } from './auth-validation'
 import type { CanvasDocumentNode } from './collaboration-state'
@@ -550,6 +550,7 @@ function BoardMembersDialog({
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     let active = true
@@ -564,12 +565,13 @@ function BoardMembersDialog({
     event.preventDefault()
     setBusy(true)
     setError('')
+    setNotice('')
     try {
-      const member = await addBoardMember(board.id, email, role)
-      setMembers((currentMembers) => [...currentMembers, member])
+      const invitation = await inviteBoardMember(board.id, email, role)
+      setNotice(`Invitation sent to ${invitation.email}. The link expires in ${invitation.expiresInDays} days.`)
       setEmail('')
     } catch (addError) {
-      setError(addError instanceof Error ? addError.message : 'Could not add that member.')
+      setError(addError instanceof Error ? addError.message : 'Could not send that invitation.')
     } finally {
       setBusy(false)
     }
@@ -608,12 +610,13 @@ function BoardMembersDialog({
         <div className="state-mark"><Users size={18} /></div>
         <p className="auth-kicker">BOARD ACCESS</p>
         <h2 id="members-title">People on this board</h2>
-        <p className="auth-subtitle">Add an existing CanvasLab account by email. This does not send an email invitation.</p>
+        <p className="auth-subtitle">Invite anyone by email. They can register or sign in to accept the invitation.</p>
         {canManage && <form className="auth-form member-add-form" onSubmit={handleAdd}>
           <label>Email address<input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="teammate@example.com" /></label>
           <label>Access<select value={role} onChange={(event) => setRole(event.target.value as 'editor' | 'viewer')}><option value="editor">Can edit</option><option value="viewer">Can view</option></select></label>
-          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Adding…' : 'Add member'}<ArrowRight size={16} /></button>
+          <button className="auth-submit" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Send invitation'}<ArrowRight size={16} /></button>
         </form>}
+        {notice && <div className="auth-notice" role="status">{notice}</div>}
         {error && <div className="auth-error members-error" role="alert">{error}</div>}
         <div className="member-list" aria-live="polite">
           {loading ? <div className="member-list-empty">Loading board members…</div> : members.length === 0 ? <div className="member-list-empty">No members found.</div> : members.map((member) => (
