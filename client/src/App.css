@@ -432,3 +432,49 @@
   .note-one { top: 30px; left: 22px; }.note-two { right: 16px; bottom: 23px; }
   .empty-code { top: 29px; right: 22px; }
 }
+
+
+/* MVP completion: auth validation and code language selection */
+.auth-field-error {
+  display: block;
+  margin-top: 5px;
+  color: #a34f42;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.auth-form input[aria-invalid="true"] {
+  border-color: #c7725c;
+  outline-color: #c7725c;
+}
+
+.language-picker-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.language-picker {
+  max-width: 112px;
+  border: 1px solid #e4e5df;
+  border-radius: 5px;
+  background: #fff;
+  padding: 4px 6px;
+  color: #656861;
+  font: inherit;
+  font-size: 10px;
+}
+
+.language-picker:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
