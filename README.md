@@ -65,15 +65,27 @@ npm run dev --prefix client
 
 Open the URL Vite prints (normally [http://localhost:5173](http://localhost:5173)). The Vite dev server proxies `/api` requests to the local API.
 
+## Free email setup with Gmail API
+
+CanvasLab can send board invitations and password-reset emails through the Gmail API without buying a domain. Standard Gmail API use has no additional API charge, but Gmail account sending limits still apply.
+
+1. Sign in to [Google Cloud Console](https://console.cloud.google.com/) with the Gmail account you want CanvasLab to send from.
+2. Create a project, enable **Gmail API**, and configure the OAuth consent screen. For a personal test, choose External and add your sender Gmail account as a test user.
+3. Create an OAuth Client ID of type **Desktop app** and note its client ID and client secret.
+4. Use Google's [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) with your own OAuth credentials. In its settings, enable **Use your own OAuth credentials**, enter the client ID and secret, and authorize the scope `https://www.googleapis.com/auth/gmail.send` for the sender Gmail account.
+5. Exchange the authorization code for tokens and copy the **refresh token**. Keep the refresh token and client secret private. OAuth Playground may require its redirect URI to be added to the OAuth client if Google reports a redirect mismatch.
+6. In the Render `canvaslab-api` service, set `EMAIL_FROM` to that same Gmail address and configure `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN`. Remove the old `SEND_API_KEY` and `RESEND_API_KEY` values to avoid confusion. Save and wait for Render to redeploy.
+7. Send a test invitation to an inbox you can access and check Render logs and the sender Gmail's Sent folder.
+
+**OAuth note:** If the consent screen remains in Testing, refresh tokens for Gmail scopes can expire after 7 days. This is suitable for an initial test but may require reauthorization. Publishing the OAuth app can involve Google verification requirements for the Gmail send scope. Do not publish or request broader scopes than necessary.
+
 ## Password recovery in local development
 
-When `NODE_ENV=development` and no email webhook is configured, password recovery returns a one-time reset URL in the UI so the complete flow can be tested locally without an email service. The link expires after 30 minutes and can only be used once. This development-only link response must not be enabled in production.
-
-For production email delivery, configure `APP_BASE_URL`, `PASSWORD_RESET_EMAIL_WEBHOOK_URL`, and `PASSWORD_RESET_EMAIL_WEBHOOK_SECRET` in the server environment. The trusted webhook receives an authenticated JSON POST with `to`, `subject`, `text`, and `html` fields and should return a 2xx response only after accepting the email.
+When `NODE_ENV=development` and no email provider is configured, password recovery returns a one-time reset URL in the UI so the complete flow can be tested locally without an email service. The link expires after 30 minutes and can only be used once.
 
 ## Sharing boards
 
-Open a board and select **People** to invite a person by email and choose Editor or Viewer access. CanvasLab creates a unique invitation link that expires after 7 days. If email delivery is configured, the server sends the invitation; otherwise, the UI shows a link you can copy and share manually. The recipient must register or sign in with the invited email address to accept it. Only board owners can invite people or change other members' roles.
+Open a board and select **People** to invite a person by email and choose Editor or Viewer access. CanvasLab creates a unique invitation link that expires after 7 days. If Gmail API email delivery is configured, the server sends the invitation; otherwise, the UI shows a link you can copy and share manually. The recipient must register or sign in with the invited email address to accept it. Only board owners can invite people or change other members' roles.
 
 The **Share** button copies the current board URL; it does not grant access by itself. Use **People** to issue an invitation and grant membership.
 
@@ -92,7 +104,7 @@ For an end-to-end smoke test, create two accounts, invite the second account as 
 
 - Use a managed PostgreSQL database and run `npm run db:migrate --prefix server`.
 - Set a strong private `SESSION_SECRET`, `NODE_ENV=production`, `CLIENT_ORIGIN`, and `APP_BASE_URL`.
-- Configure the password-reset/invitation email webhook for real email delivery.
+- Keep Gmail OAuth client secrets and refresh tokens only in the Render `canvaslab-api` environment.
 - Set `VITE_COLLAB_URL` to the deployed Hocuspocus WebSocket URL for the production frontend build.
 - Deploy the Express API and Hocuspocus WebSocket service, and ensure board membership is enforced for every collaboration connection.
 - Do not use the local Docker credentials in production.
