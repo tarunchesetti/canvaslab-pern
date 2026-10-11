@@ -2,6 +2,7 @@ services:
   - type: web
     name: canvaslab-api
     runtime: node
+    plan: free
     rootDir: server
     buildCommand: npm ci && npm run build
     startCommand: npm start
@@ -23,6 +24,7 @@ services:
   - type: web
     name: canvaslab-collab
     runtime: node
+    plan: free
     rootDir: server
     buildCommand: npm ci && npm run build
     startCommand: npm start
