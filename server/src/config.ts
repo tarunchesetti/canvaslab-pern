@@ -10,6 +10,7 @@ const environmentSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   CLIENT_ORIGIN: z.string().url().default('http://localhost:5173'),
   APP_BASE_URL: z.string().url().default('http://localhost:5173'),
+  SEND_API_KEY: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
   RESEND_API_KEY: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
   EMAIL_FROM: z.preprocess((value) => value === '' ? undefined : value, z.string().min(1).optional()),
   PASSWORD_RESET_EMAIL_WEBHOOK_URL: z.preprocess((value) => value === '' ? undefined : value, z.string().url().optional()),
