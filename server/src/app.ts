@@ -40,7 +40,7 @@ export function createApp(pool: Pool, configuration: Environment) {
     }
   })
   app.use('/api/auth', createAuthRouter(pool, configuration.SESSION_SECRET, configuration))
-  app.use('/api/boards', createBoardsRouter(pool))
+  app.use('/api/boards', createBoardsRouter(pool, configuration))
   app.use((_request, response) => response.status(404).json({ error: 'Not found' }))
 
   const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
