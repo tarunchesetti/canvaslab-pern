@@ -543,3 +543,68 @@
   font-size: 11px;
   line-height: 1.5;
 }
+
+
+/* Clear, discoverable actions for local recovery and collaboration sharing. */
+.signout-button {
+  min-height: 30px;
+  flex: 0 0 auto;
+  gap: 5px;
+  padding: 0 8px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.auth-reset-link {
+  margin: 8px 0 0;
+}
+
+.auth-reset-link a,
+.invitation-link-actions a {
+  color: #465b3c;
+  font-size: 11px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.invitation-link-panel {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 14px;
+  border: 1px solid #dfe4d8;
+  border-radius: 6px;
+  background: #f5f7f1;
+  padding: 11px;
+}
+
+.invitation-link-panel label {
+  color: #555a4f;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.invitation-link-panel input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid #dfe2d9;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0 8px;
+  color: #555950;
+  font: 10px var(--mono);
+}
+
+.invitation-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+@media (max-width: 620px) {
+  .signout-button {
+    min-height: 28px;
+    padding: 0 6px;
+  }
+}
