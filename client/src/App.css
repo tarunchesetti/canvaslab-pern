@@ -727,3 +727,35 @@
   .mobile-signout { display: inline-flex; width: 32px; min-width: 32px; padding: 0; }
   .signout-button { display: none; }
 }
+
+
+/* Mobile navigation toggle and contained header actions */
+.mobile-nav-toggle { display:none; align-items:center; justify-content:center; width:34px; height:34px; flex:0 0 34px; border:1px solid #e5e6df; border-radius:8px; background:#fff; color:#34372f; }
+@media (max-width:760px) {
+  .topbar { box-sizing:border-box; width:100%; min-width:0; padding:0 8px; gap:6px; }
+  .mobile-nav-toggle { display:inline-flex; }
+  .breadcrumbs { flex:1 1 auto; min-width:0; gap:5px; }
+  .breadcrumbs > span:first-child, .breadcrumb-slash { display:none; }
+  .breadcrumbs strong { max-width:28vw; }
+  .topbar-actions { flex:0 1 auto; gap:5px; }
+  .topbar-actions .connection-badge, .topbar-actions .presence-stack { display:none; }
+  .mobile-signout { box-sizing:border-box; width:30px; min-width:30px; height:30px; flex:0 0 30px; padding:0; margin:0; }
+  .invite-button { min-height:30px; padding:0 7px; }
+  .sidebar { position:fixed; inset:0 auto 0 0; height:100dvh; max-height:100dvh; overflow-x:hidden; overflow-y:auto; box-sizing:border-box; width:52px; min-width:52px; box-shadow:2px 0 12px #2022180a; transition:width .2s ease,min-width .2s ease; }
+  .sidebar.mobile-nav-open { width:min(280px,84vw); min-width:min(280px,84vw); align-items:stretch; box-shadow:8px 0 30px #20221825; }
+  .sidebar.mobile-nav-open .brand > span:last-child,
+  .sidebar.mobile-nav-open .workspace-switcher,
+  .sidebar.mobile-nav-open .sidebar-label,
+  .sidebar.mobile-nav-open .nav-item,
+  .sidebar.mobile-nav-open .board-link { display:flex; }
+  .sidebar.mobile-nav-open .sidebar-bottom { display:none; }
+  .sidebar.mobile-nav-open .brand { margin-left:5px; }
+  .sidebar.mobile-nav-open .nav-item { justify-content:flex-start; }
+  .sidebar.mobile-nav-open .nav-active { display:flex; }
+  .sidebar.mobile-nav-open .sidebar-label button { display:grid; }
+  .sidebar.mobile-nav-open .board-link { display:flex; }
+  .sidebar.mobile-nav-open .nav-count { display:inline; }
+  .app-shell { overflow-x:hidden; }
+  .workspace { min-width:0; width:100%; }
+  .board-canvas-wrap.drawing-mode .drawing-surface.drawing-active { touch-action:none; }
+}
