@@ -806,3 +806,18 @@
   .invite-button { width:32px; min-width:32px; padding:0; font-size:0; }
   .invite-button svg { flex:0 0 auto; }
 }
+
+
+/* Compact mobile workspace navigation mirrors the desktop sidebar categories. */
+.mobile-workspace-nav { display:none; }
+@media (max-width:760px) {
+  .mobile-workspace-nav { display:flex; position:relative; z-index:5; width:100%; min-width:0; box-sizing:border-box; align-items:center; gap:7px; overflow-x:auto; overflow-y:hidden; padding:8px 10px; border-bottom:1px solid var(--line); background:#fff; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .mobile-workspace-nav::-webkit-scrollbar { display:none; }
+  .mobile-workspace-nav button { display:inline-flex; min-height:32px; flex:0 0 auto; align-items:center; gap:6px; padding:0 10px; border:1px solid #e8e9e3; border-radius:8px; background:#fff; color:#565950; font:inherit; font-size:11px; white-space:nowrap; }
+  .mobile-workspace-nav .mobile-workspace-link:active, .mobile-workspace-nav .mobile-workspace-link:hover { background:#f1f2ec; }
+  .mobile-workspace-nav .mobile-workspace-board-active { border-color:#d9ddce; background:#eff1e8; color:#30342b; font-weight:600; }
+  .mobile-workspace-nav .board-color { flex:0 0 8px; width:8px; height:8px; }
+  .mobile-workspace-nav .nav-count { margin-left:1px; }
+  .mobile-workspace-divider { width:1px; height:22px; flex:0 0 1px; background:#e7e8e1; }
+  .mobile-workspace-label { flex:0 0 auto; padding:0 2px; color:#8a8d83; font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; white-space:nowrap; }
+}
