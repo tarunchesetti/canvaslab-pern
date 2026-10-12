@@ -656,3 +656,66 @@
 /* Ensure freehand input sits above the React Flow pan surface. */
 .board-canvas-wrap.drawing-mode .react-flow__pane { pointer-events: none !important; cursor: crosshair !important; }
 .board-canvas-wrap.drawing-mode .drawing-surface.drawing-active { z-index: 20 !important; pointer-events: all !important; cursor: crosshair !important; }
+
+
+/* Small-screen workspace and canvas controls */
+@media (max-width: 760px) {
+  .app-shell { width: 100%; min-width: 0; overflow-x: hidden; }
+  .workspace { width: 0; min-width: 0; flex: 1 1 auto; }
+  .topbar { min-width: 0; gap: 6px; padding: 0 10px; }
+  .breadcrumbs { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  .breadcrumbs strong { max-width: 34vw; }
+  .topbar-actions { flex: 0 0 auto; min-width: 0; }
+  .board-heading { min-width: 0; }
+  .board-heading > div:first-child { min-width: 0; max-width: 100%; }
+  .board-heading h1 { max-width: calc(100vw - 105px); overflow-wrap: anywhere; }
+  .board-status { max-width: 100%; white-space: normal; flex-wrap: wrap; }
+  .board-canvas-wrap { min-width: 0; min-height: 420px; }
+  .canvas-toolbar {
+    top: 10px; left: 8px; right: 8px; width: auto; max-width: none;
+    overflow-x: auto; overflow-y: hidden; justify-content: flex-start;
+    gap: 2px; padding: 4px; scrollbar-width: none; overscroll-behavior-x: contain;
+  }
+  .canvas-toolbar::-webkit-scrollbar { display: none; }
+  .tool-button { width: 31px; min-width: 31px; height: 32px; flex: 0 0 31px; }
+  .tool-divider { flex: 0 0 1px; }
+  .canvas-search {
+    top: 58px; left: 9px; right: auto; width: min(160px, calc(100% - 120px));
+    max-width: calc(100% - 120px); height: 30px;
+  }
+  .canvas-search input { width: 100%; min-width: 0; }
+  .canvas-live { top: 67px; right: 10px; max-width: 112px; justify-content: flex-end; text-align: right; }
+  .drawing-options {
+    top: 98px; left: 9px; right: 9px; max-width: none; width: auto;
+    flex-wrap: wrap; gap: 8px; padding: 6px 8px;
+  }
+  .drawing-options label { gap: 5px; }
+  .drawing-options input[type="range"] { width: clamp(55px, 22vw, 90px); }
+  .selection-toolbar {
+    top: 98px; left: 9px; right: 9px; max-width: none; width: auto;
+    max-height: 92px; overflow-y: auto; gap: 5px; padding: 6px;
+  }
+  .canvas-hint { max-width: calc(100% - 20px); white-space: normal; text-align: center; }
+  .workspace-footer { gap: 7px; padding: 0 8px; }
+  .workspace-footer > span { min-width: 0; }
+}
+@media (max-width: 420px) {
+  .sidebar { width: 43px; min-width: 43px; padding-right: 4px; padding-left: 4px; }
+  .brand { margin-left: 0; }
+  .nav-active { width: 32px; height: 32px; }
+  .topbar { min-height: 50px; padding: 0 7px; }
+  .breadcrumbs { gap: 4px; font-size: 9px; }
+  .breadcrumbs strong { max-width: 29vw; font-size: 10px; }
+  .topbar-actions { gap: 4px; }
+  .topbar-actions .button { min-height: 29px; padding: 0 7px; }
+  .board-heading { padding: 15px 12px; }
+  .board-heading h1 { font-size: 20px; max-width: calc(100vw - 78px); }
+  .board-heading p { font-size: 11px; }
+  .board-canvas-wrap { min-height: 400px; }
+  .canvas-toolbar { left: 6px; right: 6px; }
+  .canvas-search { left: 7px; }
+  .canvas-live { right: 7px; max-width: 100px; font-size: 8px; }
+  .drawing-options, .selection-toolbar { left: 7px; right: 7px; }
+  .workspace-footer { font-size: 8px; }
+  .workspace-footer > span:nth-of-type(2), .footer-separator { display: none; }
+}
