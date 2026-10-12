@@ -719,3 +719,11 @@
   .workspace-footer { font-size: 8px; }
   .workspace-footer > span:nth-of-type(2), .footer-separator { display: none; }
 }
+
+
+/* Keep sign-out reachable without scrolling the sidebar on mobile. */
+.mobile-signout { display: none; }
+@media (max-width: 760px) {
+  .mobile-signout { display: inline-flex; width: 32px; min-width: 32px; padding: 0; }
+  .signout-button { display: none; }
+}
