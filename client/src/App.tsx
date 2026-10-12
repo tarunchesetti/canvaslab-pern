@@ -922,8 +922,6 @@ function BoardCanvas({
           </button>
         ))}
         <div className="sidebar-bottom">
-          <div className="profile-avatar">{user.displayName.slice(0, 2).toUpperCase()}</div>
-          <span className="profile-copy"><strong>{user.displayName}</strong><small>{user.email}</small></span>
           <button className="button button-outline signout-button" aria-label="Sign out" title="Sign out" onClick={onLogout}><LogOut size={14} /><span>Sign out</span></button>
         </div>
       </aside>
