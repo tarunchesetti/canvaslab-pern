@@ -1085,7 +1085,7 @@ function BoardCanvas({
           <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
-        <div className="board-canvas-wrap" ref={canvasWrapperRef}>
+        <div className={`board-canvas-wrap ${canInteract && ['pen', 'brush', 'highlighter'].includes(activeTool) ? 'drawing-mode' : ''}`} ref={canvasWrapperRef}>
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <button className={`tool-button ${activeTool === 'pen' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Pen: draw freehand" aria-label="Pen tool" onClick={() => setActiveTool('pen')}><Pencil size={17} /></button>
