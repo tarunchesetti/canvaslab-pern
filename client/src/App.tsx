@@ -1182,6 +1182,8 @@ function BoardCanvas({
             edges={[]}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
+            fitView
+            fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
             minZoom={0.35}
             maxZoom={1.4}
             nodesDraggable={canInteract && !['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool)}
