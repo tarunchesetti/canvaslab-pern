@@ -781,3 +781,28 @@
   .mobile-header-menu .board-color { flex:0 0 9px; }
   .mobile-header-menu .mobile-menu-signout { margin-top:6px; border-top:1px solid #ecece7; border-radius:0; color:#a0443d; }
 }
+
+
+/* Mobile header: brand on the left, create-board action on the right. */
+.mobile-brand { display:none; align-items:center; gap:7px; flex:0 0 auto; color:var(--ink); font-family:var(--display); font-size:16px; font-weight:700; text-decoration:none; white-space:nowrap; }
+.mobile-brand .brand-mark { width:25px; height:25px; border-radius:7px; }
+.mobile-create-board { display:none; }
+@media (max-width:760px) {
+  .mobile-brand { display:inline-flex; }
+  .mobile-nav-toggle { display:none !important; }
+  .breadcrumbs { display:none; }
+  .topbar { justify-content:space-between; gap:8px; padding:0 10px; }
+  .topbar-actions { flex:0 0 auto; margin-left:auto; gap:5px; }
+  .mobile-create-board { display:inline-flex; align-items:center; justify-content:center; gap:4px; min-height:31px; height:31px; padding:0 8px; font-size:11px; white-space:nowrap; }
+  .invite-button { min-height:31px; height:31px; padding:0 8px; font-size:11px; white-space:nowrap; }
+  .mobile-signout { width:30px; min-width:30px; height:31px; flex:0 0 30px; }
+  .mobile-header-menu { left:auto; right:8px; }
+}
+@media (max-width:390px) {
+  .mobile-brand { gap:5px; font-size:14px; }
+  .mobile-brand .brand-mark { width:23px; height:23px; }
+  .mobile-create-board { width:31px; min-width:31px; padding:0; }
+  .mobile-create-board span { display:none; }
+  .invite-button { width:32px; min-width:32px; padding:0; font-size:0; }
+  .invite-button svg { flex:0 0 auto; }
+}
