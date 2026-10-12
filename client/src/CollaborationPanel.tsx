@@ -3,7 +3,7 @@ import { Activity, Bell, Check, History, ListChecks, MessageSquare, Plus, Thumbs
 import type { Board } from './api'
 import './CollaborationPanel.css'
 
-type Tab = 'comments' | 'tasks' | 'vote' | 'activity' | 'history' | 'templates' | 'inbox'
+type Tab = 'comments' | 'tasks' | 'vote' | 'decisions' | 'activity' | 'history' | 'templates' | 'inbox'
 type Item = Record<string, any>
 type ElementSummary = { id: string; title: string }
 const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
@@ -27,6 +27,9 @@ export function CollaborationPanel({ board, canEdit, selectedElement, elements, 
   const [sessions, setSessions] = useState<Item[]>([])
   const [voteCounts, setVoteCounts] = useState<Item[]>([])
   const [activity, setActivity] = useState<Item[]>([])
+  const [decisions, setDecisions] = useState<Item[]>([])
+  const [decisionTitle, setDecisionTitle] = useState('')
+  const [decisionRationale, setDecisionRationale] = useState('')
   const [snapshots, setSnapshots] = useState<Item[]>([])
   const [templates, setTemplates] = useState<Item[]>([])
   const [notifications, setNotifications] = useState<Item[]>([])
@@ -39,16 +42,17 @@ export function CollaborationPanel({ board, canEdit, selectedElement, elements, 
 
   const refresh = useCallback(async () => {
     try {
-      const [c, t, s, a, h, tm, n] = await Promise.all([
+      const [c, t, s, d, a, h, tm, n] = await Promise.all([
         api<{comments: Item[]}>('/boards/' + board.id + '/comments'),
         api<{tasks: Item[]}>('/boards/' + board.id + '/tasks'),
         api<{sessions: Item[]; voteCounts: Item[]}>('/boards/' + board.id + '/sessions'),
+        api<{decisions: Item[]}>('/boards/' + board.id + '/decisions'),
         api<{activity: Item[]}>('/boards/' + board.id + '/activity'),
         api<{snapshots: Item[]}>('/boards/' + board.id + '/snapshots'),
         api<{templates: Item[]}>('/templates'),
         api<{notifications: Item[]}>('/notifications'),
       ])
-      setComments(c.comments); setTasks(t.tasks); setSessions(s.sessions); setVoteCounts(s.voteCounts)
+      setComments(c.comments); setTasks(t.tasks); setSessions(s.sessions); setVoteCounts(s.voteCounts); setDecisions(d.decisions)
       setActivity(a.activity); setSnapshots(h.snapshots); setTemplates(tm.templates); setNotifications(n.notifications); setError('')
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load collaboration data.') }
   }, [board.id])
@@ -66,7 +70,7 @@ export function CollaborationPanel({ board, canEdit, selectedElement, elements, 
       <section className="collab-panel" role="dialog" aria-modal="true" aria-labelledby="collab-panel-title">
         <header className="collab-panel-header"><div><p className="auth-kicker">TEAM WORKSPACE</p><h2 id="collab-panel-title">Collaboration</h2><p className="collab-board-name">{board.title}</p></div><button className="dialog-close" onClick={onClose} aria-label="Close collaboration panel"><X size={18} /></button></header>
         <nav className="collab-tabs" aria-label="Collaboration tools">
-          {([['comments', MessageSquare, 'Comments'], ['tasks', ListChecks, 'Tasks'], ['vote', ThumbsUp, 'Vote'], ['activity', Activity, 'Activity'], ['history', History, 'History'], ['templates', Plus, 'Templates'], ['inbox', Bell, unreadCount ? 'Inbox · ' + unreadCount : 'Inbox']] as const).map(([id, Icon, label]) => <button key={id} className={tab === id ? 'collab-tab active' : 'collab-tab'} onClick={() => setTab(id)}><Icon size={14} />{label}</button>)}
+          {([['comments', MessageSquare, 'Comments'], ['tasks', ListChecks, 'Tasks'], ['vote', ThumbsUp, 'Vote'], ['decisions', Check, 'Decisions'], ['activity', Activity, 'Activity'], ['history', History, 'History'], ['templates', Plus, 'Templates'], ['inbox', Bell, unreadCount ? 'Inbox · ' + unreadCount : 'Inbox']] as const).map(([id, Icon, label]) => <button key={id} className={tab === id ? 'collab-tab active' : 'collab-tab'} onClick={() => setTab(id)}><Icon size={14} />{label}</button>)}
         </nav>
         <div className="collab-panel-content">
           {error && <div className="collab-error" role="alert">{error}</div>}
@@ -86,6 +90,10 @@ export function CollaborationPanel({ board, canEdit, selectedElement, elements, 
             <p className="collab-section-hint">Each teammate gets up to three votes in an active session.</p>
             {sessions.map((session) => <article className="collab-item" key={session.id}><div className="collab-item-meta"><strong>{session.title}</strong><span>{session.status}</span></div>{session.type === 'voting' && session.status === 'active' && elements.map((element) => { const count = voteCounts.find((v) => v.session_id === session.id && v.element_id === element.id)?.vote_count ?? 0; return <div className="collab-vote-row" key={element.id}><span>{element.title} <small>· {count} votes</small></span><button className="collab-icon-action" disabled={busy} onClick={() => void run(() => api('/sessions/' + session.id + '/votes', { method: 'POST', body: JSON.stringify({ elementId: element.id }) }))} aria-label={'Vote for ' + element.title}><ThumbsUp size={15} /></button></div> })}{canEdit && session.status === 'active' && <button className="collab-text-action" onClick={() => void run(() => api('/sessions/' + session.id + '/close', { method: 'POST' }))}>Close session</button>}</article>)}
             {!sessions.length && <p className="collab-empty">Start a vote to prioritize ideas on this board.</p>}
+          </>}
+          {tab === 'decisions' && <>
+            {canEdit && <form className="collab-inline-form" onSubmit={(event) => { event.preventDefault(); if (!decisionTitle.trim()) return; void run(async () => { await api('/boards/' + board.id + '/decisions', { method: 'POST', body: JSON.stringify({ title: decisionTitle.trim(), rationale: decisionRationale.trim(), sourceElementId: selectedElement?.id ?? null }) }); setDecisionTitle(''); setDecisionRationale('') }) }}><input value={decisionTitle} onChange={(event) => setDecisionTitle(event.target.value)} placeholder="What did the team decide?" maxLength={240} /><textarea value={decisionRationale} onChange={(event) => setDecisionRationale(event.target.value)} placeholder="Why was this chosen? (optional)" rows={3} maxLength={5000} /><button className="auth-submit" disabled={busy || !decisionTitle.trim()}><Plus size={15} /> Record decision</button></form>}
+            <div className="collab-item-list">{decisions.map((decision) => <article className="collab-item" key={decision.id}><div className="collab-item-meta"><strong>{decision.title}</strong><span>{decision.status}</span></div>{decision.rationale && <p>{decision.rationale}</p>}{decision.source_element_id && <small>Linked to {elements.find((el) => el.id === decision.source_element_id)?.title || 'a board element'}</small>}{canEdit && <div className="collab-task-controls"><select aria-label={'Status for decision ' + decision.title} disabled={busy} value={decision.status} onChange={(event) => void run(() => api('/boards/' + board.id + '/decisions/' + decision.id, { method: 'PATCH', body: JSON.stringify({ status: event.target.value }) }))}><option value="proposed">Proposed</option><option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="superseded">Superseded</option></select></div>}</article>)}{!decisions.length && <p className="collab-empty">Capture the outcome and rationale so teammates can catch up asynchronously.</p>}</div>
           </>}
           {tab === 'activity' && <div className="collab-item-list">{activity.map((item) => <article className="collab-item" key={item.id}><div className="collab-item-meta"><strong>{item.actor_name || 'CanvasLab'}</strong><span>{new Date(item.created_at).toLocaleString()}</span></div><p>{item.event_type.replaceAll('.', ' ')}</p>{item.payload?.title && <small>{item.payload.title}</small>}</article>)}{!activity.length && <p className="collab-empty">Board activity will appear here.</p>}</div>}
           {tab === 'history' && <><button className="auth-submit collab-full-button" disabled={!canEdit || busy} onClick={() => void run(() => api('/boards/' + board.id + '/snapshots', { method: 'POST', body: JSON.stringify({ label: 'Snapshot · ' + new Date().toLocaleString() }) }))}><History size={15} /> Save current snapshot</button><p className="collab-section-hint">Snapshots preserve the latest saved document. Restore is held until active collaborators can safely reload.</p>{snapshots.map((snapshot) => <article className="collab-item" key={snapshot.id}><strong>{snapshot.label}</strong><p>Document version {snapshot.document_version}</p><small>{new Date(snapshot.created_at).toLocaleString()}</small></article>)}{!snapshots.length && <p className="collab-empty">Save a snapshot before a major workshop.</p>}</>}
