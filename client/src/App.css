@@ -843,3 +843,38 @@
     flex:0 0 14px;
   }
 }
+
+
+/* Give Share a clearly wider tap target and prevent label clipping on all mobile sizes. */
+@media (max-width:760px) {
+  .topbar-actions .invite-button {
+    width:76px;
+    min-width:76px;
+    max-width:76px;
+    box-sizing:border-box;
+    flex:0 0 76px;
+    justify-content:center;
+    padding:0 10px;
+    gap:6px;
+    font-size:12px;
+    line-height:1;
+    overflow:visible;
+    white-space:nowrap;
+  }
+  .topbar-actions .invite-button svg {
+    width:15px;
+    height:15px;
+    min-width:15px;
+    flex:0 0 15px;
+  }
+}
+@media (max-width:390px) {
+  .topbar-actions .invite-button {
+    width:76px;
+    min-width:76px;
+    max-width:76px;
+    flex-basis:76px;
+    padding:0 10px;
+    font-size:12px;
+  }
+}
