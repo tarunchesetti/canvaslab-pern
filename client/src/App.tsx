@@ -30,8 +30,6 @@ import {
   Eraser,
   LoaderCircle,
   MousePointer2,
-  Menu,
-  X,
   Plus,
   Search,
   Square,
