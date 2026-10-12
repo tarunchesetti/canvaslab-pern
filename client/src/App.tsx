@@ -1007,7 +1007,7 @@ function BoardCanvas({
             {selectedNode.type === 'shape' && <label title="Shape type"><span>Shape</span><select aria-label="Shape type" value={selectedNode.data.shape ?? 'rectangle'} onChange={(event) => updateSelectedNode({ shape: event.target.value as 'rectangle' | 'circle' | 'diamond' })}><option value="rectangle">Rectangle</option><option value="circle">Circle</option><option value="diamond">Diamond</option></select></label>}
             <button type="button" className="format-button" aria-label="Duplicate selected object" title="Duplicate" onClick={duplicateSelectedNode}><Copy size={15} /></button>
             <button type="button" className="format-button format-danger" aria-label="Delete selected object" title="Delete" onClick={deleteSelectedNode}><Trash2 size={15} /></button>
-          </div>
+          </div>}
 
           <label className="canvas-search"><Search size={15} /><input ref={searchInput} aria-label="Find on canvas" placeholder="Find on canvas" value={searchQuery} onChange={(event) => searchCanvas(event.target.value)} /><kbd>Ctrl K</kbd></label>
           <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
