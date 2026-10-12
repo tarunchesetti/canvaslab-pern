@@ -149,14 +149,19 @@ export function createCollaborationRouter(pool: Pool): Router {
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
-      const used = await client.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM session_votes WHERE session_id = $1 AND user_id = $2 FOR UPDATE', [current.id, userId])
+      const lockedSession = await client.query<{ status: string; vote_limit: number }>('SELECT status, vote_limit FROM board_sessions WHERE id = $1 FOR UPDATE', [current.id])
+      if (!lockedSession.rows[0] || lockedSession.rows[0].status !== 'active') {
+        await client.query('ROLLBACK')
+        return res.status(409).json({ error: 'Voting is closed' })
+      }
+      const used = await client.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM session_votes WHERE session_id = $1 AND user_id = $2', [current.id, userId])
       const exists = await client.query('SELECT 1 FROM session_votes WHERE session_id = $1 AND element_id = $2 AND user_id = $3', [current.id, parsed.data.elementId, userId])
       if (exists.rowCount) {
         await client.query('DELETE FROM session_votes WHERE session_id = $1 AND element_id = $2 AND user_id = $3', [current.id, parsed.data.elementId, userId])
         await client.query('COMMIT')
         return res.json({ voted: false })
       }
-      if (Number(used.rows[0]?.count ?? 0) >= current.vote_limit) {
+      if (Number(used.rows[0]?.count ?? 0) >= lockedSession.rows[0].vote_limit) {
         await client.query('ROLLBACK')
         return res.status(409).json({ error: 'You have used all your votes for this session' })
       }
