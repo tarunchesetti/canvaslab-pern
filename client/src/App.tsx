@@ -46,6 +46,7 @@ import type * as Yjs from 'yjs'
 import { passwordsMatch } from './auth-validation'
 import type { CanvasDocumentNode } from './collaboration-state'
 import { CollaborationPanel } from './CollaborationPanel'
+import { TemplateGallery, type CanvasTemplateId } from './TemplateGallery'
 import '@xyflow/react/dist/style.css'
 import './App.css'
 
@@ -801,6 +802,7 @@ function BoardCanvas({
   const [showBoardMenu, setShowBoardMenu] = useState(false)
   const [showCollaborationPanel, setShowCollaborationPanel] = useState(false)
   const [presentationMode, setPresentationMode] = useState(false)
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false)
   const selectedNode = nodes.find((node) => node.selected && !node.data.readOnly)
   function updateSelectedNode(patch: Partial<CanvasNode['data']>) {
     if (!selectedNode) return
@@ -1044,6 +1046,62 @@ function BoardCanvas({
     setNodes((current) => [...current, newDrawing])
   }
 
+  function applyTemplate(templateId: CanvasTemplateId) {
+    const templates: Record<CanvasTemplateId, { title: string; text: string; type: CanvasNode['type']; x: number; y: number; color: string }[]> = {
+      'meeting-notes': [
+        { title: 'Meeting notes', text: 'Meeting title • Date • Attendees', type: 'text', x: 100, y: 50, color: '#303a2b' },
+        { title: 'Agenda', text: '1. Topic to discuss\n2. Open questions\n3. Decisions needed', type: 'note', x: 100, y: 150, color: '#e8eedf' },
+        { title: 'Discussion', text: 'Key points and context\n\nWhat did we learn?', type: 'note', x: 400, y: 150, color: '#fff0c9' },
+        { title: 'Decisions', text: 'Decision • Owner • Why', type: 'note', x: 100, y: 380, color: '#e4eaf8' },
+        { title: 'Action items', text: '☐ Action — owner — due date\n☐ Action — owner — due date', type: 'checklist', x: 400, y: 380, color: '#f6e5dc' },
+      ],
+      'project-proposal': [
+        { title: 'Project proposal', text: 'Project name and one-sentence summary', type: 'text', x: 100, y: 50, color: '#303a2b' },
+        { title: 'Problem', text: 'Who has this problem?\nWhat evidence do we have?', type: 'note', x: 100, y: 150, color: '#f3e7d7' },
+        { title: 'Goals & success', text: 'What will improve?\nHow will we measure success?', type: 'note', x: 400, y: 150, color: '#e5eadb' },
+        { title: 'Scope & risks', text: 'In scope\nOut of scope\nMain risks and mitigations', type: 'note', x: 100, y: 380, color: '#e8e4f4' },
+        { title: 'Plan & owners', text: 'Milestone • Owner • Target date', type: 'note', x: 400, y: 380, color: '#e0ebf0' },
+      ],
+      'pitch-deck': [
+        { title: '01 · The idea', text: 'A clear one-line description of the product or idea.', type: 'shape', x: 100, y: 70, color: '#e8e4f4' },
+        { title: '02 · The problem', text: 'Who is struggling today?\nWhy do current solutions fall short?', type: 'shape', x: 400, y: 70, color: '#e0ebf0' },
+        { title: '03 · Our solution', text: 'Show the simplest, strongest version of the solution.', type: 'shape', x: 100, y: 320, color: '#e5eadb' },
+        { title: '04 · The plan', text: 'Milestones • Team • Ask', type: 'shape', x: 400, y: 320, color: '#f3e7d7' },
+      ],
+      'sprint-review': [
+        { title: 'Sprint review', text: 'Sprint number • Dates • Team', type: 'text', x: 100, y: 50, color: '#303a2b' },
+        { title: 'Shipped', text: 'What went live?\nWhat value did it deliver?', type: 'note', x: 100, y: 150, color: '#e5eadb' },
+        { title: 'Learnings', text: 'What worked?\nWhat surprised us?', type: 'note', x: 400, y: 150, color: '#e8e4f4' },
+        { title: 'Feedback', text: 'Questions and feedback from stakeholders', type: 'note', x: 100, y: 380, color: '#e0ebf0' },
+        { title: 'Next sprint', text: '☐ Priority one\n☐ Priority two\n☐ Priority three', type: 'checklist', x: 400, y: 380, color: '#fff0c9' },
+      ],
+      'brainstorm': [
+        { title: 'Challenge / opportunity', text: 'What question are we trying to answer together?', type: 'shape', x: 400, y: 250, color: '#e8e4f4' },
+        { title: 'Ideas', text: 'Add ideas here — one thought per note', type: 'note', x: 80, y: 100, color: '#fff0c9' },
+        { title: 'Wild ideas', text: 'What if there were no constraints?', type: 'note', x: 750, y: 100, color: '#f6e5dc' },
+        { title: 'Questions', text: 'What do we still need to learn?', type: 'note', x: 80, y: 450, color: '#e0ebf0' },
+        { title: 'Next experiments', text: '☐ Test an assumption\n☐ Talk to a user', type: 'checklist', x: 750, y: 450, color: '#e5eadb' },
+      ],
+      'user-journey': [
+        { title: 'Discover', text: 'User actions\nTouchpoints\nQuestions', type: 'shape', x: 80, y: 180, color: '#e0ebf0' },
+        { title: 'Evaluate', text: 'User actions\nConfusion / friction\nNeeds', type: 'shape', x: 350, y: 180, color: '#e8e4f4' },
+        { title: 'Use', text: 'Key moments\nPain points\nOpportunities', type: 'shape', x: 620, y: 180, color: '#fff0c9' },
+        { title: 'Return', text: 'What brings them back?\nHow do we build trust?', type: 'shape', x: 890, y: 180, color: '#e5eadb' },
+        { title: 'Journey insights', text: 'Biggest pain point • Best opportunity • What to validate next', type: 'note', x: 350, y: 430, color: '#f6e5dc' },
+      ],
+    }
+    const baseY = nodes.length ? Math.max(...nodes.map((node) => node.position.y + (node.data.height ?? 170))) + 100 : 0
+    const additions: CanvasNode[] = templates[templateId].map((item) => ({
+      id: 'template-' + crypto.randomUUID(),
+      type: item.type,
+      position: { x: item.x, y: item.y + baseY },
+      data: { title: item.title, text: item.text, width: item.type === 'text' ? 520 : item.type === 'shape' ? 250 : 270, height: item.type === 'text' ? 60 : 170, backgroundColor: item.color, textColor: item.type === 'shape' ? '#303a2b' : undefined, fontSize: item.type === 'text' ? 26 : item.type === 'shape' ? 18 : 12, shape: item.type === 'shape' ? 'rectangle' : undefined },
+    }))
+    setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), ...additions])
+    setShowTemplateGallery(false)
+    setActiveTool('select')
+  }
+
   function searchCanvas(query: string) {
     setSearchQuery(query)
     const normalizedQuery = query.trim().toLowerCase()
@@ -1126,6 +1184,8 @@ function BoardCanvas({
             <button className="tool-button" disabled={!canInteract} title="Add circle" aria-label="Add circle" onClick={() => addNode('shape', 'circle')}><Circle size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add diamond" aria-label="Add diamond" onClick={() => addNode('shape', 'diamond')}><Diamond size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add checklist" aria-label="Add checklist" onClick={() => { setActiveTool('checklist'); addNode('checklist') }}><ListChecks size={17} /></button>
+            <span className="tool-divider" />
+            <button className="template-tool-button" disabled={!canInteract} title="Browse templates" aria-label="Browse templates" onClick={() => setShowTemplateGallery(true)}><Copy size={15} /><span>Templates</span></button>
           </div>
           {['pen', 'brush', 'highlighter'].includes(activeTool) && canInteract && <div className="drawing-options" aria-label="Drawing options">
             <label>Color <input aria-label="Drawing color" type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} /></label>
@@ -1169,6 +1229,7 @@ function BoardCanvas({
 
         <footer className="workspace-footer"><span><span className={`footer-dot ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationReady ? 'Document synced' : collaborationStatus === 'offline' ? 'Sync unavailable' : 'Syncing document'}</span><span>100%</span><span className="footer-separator" /><span>{nodes.length} objects</span><button className="footer-shortcut" onClick={onCreateBoard}><FilePlus2 size={13} /> New board</button></footer>
         {showCollaborationPanel && <CollaborationPanel board={board} canEdit={canEdit} selectedElement={selectedNode ? { id: selectedNode.id, title: selectedNode.data.title || selectedNode.id } : null} elements={nodes.map((node) => ({ id: node.id, title: node.data.title || node.id }))} onClose={() => setShowCollaborationPanel(false)} />}
+        {showTemplateGallery && <TemplateGallery onChoose={applyTemplate} onClose={() => setShowTemplateGallery(false)} />}
       </section>
     </main>
   )
