@@ -30,6 +30,8 @@ import {
   Eraser,
   LoaderCircle,
   MousePointer2,
+  Menu,
+  X,
   Plus,
   Search,
   Square,
@@ -198,16 +200,18 @@ function DrawingCard({ data }: NodeProps<CanvasNode>) {
   </svg>
 }
 
-function DrawingSurface({ activeTool, color, strokeWidth, onFinish }: {
+function DrawingSurface({ activeTool, color, strokeWidth, onFinish, onEraseAt }: {
   activeTool: string
   color: string
   strokeWidth: number
   onFinish: (points: { x: number; y: number }[], tool: string, color: string, strokeWidth: number) => void
+  onEraseAt: (point: { x: number; y: number }) => void
 }) {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow<CanvasNode>()
   const wrapperRef = useRef<SVGSVGElement | null>(null)
   const [points, setPoints] = useState<{ x: number; y: number }[]>([])
   const drawing = activeTool === 'pen' || activeTool === 'brush' || activeTool === 'highlighter'
+  const erasing = activeTool === 'eraser'
   const bounds = wrapperRef.current?.getBoundingClientRect()
   const previewPoints = points.map((point) => {
     const screen = flowToScreenPosition(point)
@@ -219,12 +223,14 @@ function DrawingSurface({ activeTool, color, strokeWidth, onFinish }: {
     return screenToFlowPosition({ x: event.clientX, y: event.clientY })
   }
   function handlePointerDown(event: React.PointerEvent<SVGSVGElement>) {
+    if (erasing) { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); onEraseAt(pointFromEvent(event)); return }
     if (!drawing) return
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
     setPoints([pointFromEvent(event)])
   }
   function handlePointerMove(event: React.PointerEvent<SVGSVGElement>) {
+    if (erasing) { onEraseAt(pointFromEvent(event)); return }
     if (points.length === 0 || !drawing) return
     const point = pointFromEvent(event)
     setPoints((current) => [...current, point])
@@ -236,7 +242,7 @@ function DrawingSurface({ activeTool, color, strokeWidth, onFinish }: {
     setPoints([])
   }
 
-  return <svg ref={wrapperRef} className={drawing ? 'drawing-surface drawing-active' : 'drawing-surface'} aria-label="Freehand drawing surface"
+  return <svg ref={wrapperRef} className={drawing || erasing ? 'drawing-surface drawing-active' : 'drawing-surface'} aria-label="Freehand drawing surface"
     onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={() => setPoints([])}>
     {previewPath && <path d={previewPath} fill="none" stroke={color} strokeWidth={strokeWidth * (activeTool === 'brush' ? 1.6 : 1)} strokeOpacity={activeTool === 'highlighter' ? 0.28 : 1} strokeLinecap="round" strokeLinejoin="round" />}
   </svg>
@@ -790,6 +796,7 @@ function BoardCanvas({
   const canEdit = board.role !== 'viewer'
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([])
   const [activeTool, setActiveTool] = useState('select')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [drawingColor, setDrawingColor] = useState('#26352a')
   const [drawingWidth, setDrawingWidth] = useState(3)
   const [showBoardMenu, setShowBoardMenu] = useState(false)
@@ -1047,7 +1054,7 @@ function BoardCanvas({
 
   return (
     <main className="app-shell">
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileNavOpen ? "mobile-nav-open" : ""}`}>
         <a className="brand" href="#board" aria-label="CanvasLab home">
           <span className="brand-mark"><Command size={17} strokeWidth={2.5} /></span>
           <span>canvas<span className="brand-light">lab</span></span>
@@ -1074,7 +1081,7 @@ function BoardCanvas({
 
       <section className="workspace" id="board">
         <header className="topbar">
-          <div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
+          <button className="mobile-nav-toggle" aria-label={mobileNavOpen ? "Collapse navigation" : "Expand navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={18} /> : <Menu size={18} />}</button><div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
           <div className="topbar-actions">
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
@@ -1088,7 +1095,7 @@ function BoardCanvas({
           <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
-        <div className={`board-canvas-wrap ${canInteract && ['pen', 'brush', 'highlighter'].includes(activeTool) ? 'drawing-mode' : ''}`} ref={canvasWrapperRef}>
+        <div className={`board-canvas-wrap ${canInteract && ['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool) ? 'drawing-mode' : ''}`} ref={canvasWrapperRef}>
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <button className={`tool-button ${activeTool === 'pen' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Pen: draw freehand" aria-label="Pen tool" onClick={() => setActiveTool('pen')}><Pencil size={17} /></button>
@@ -1137,7 +1144,7 @@ function BoardCanvas({
             deleteKeyCode={canInteract ? ['Backspace', 'Delete'] : null}
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#d8d9d5" />
-            <DrawingSurface activeTool={canInteract ? activeTool : 'select'} color={drawingColor} strokeWidth={drawingWidth} onFinish={finishDrawing} />
+            <DrawingSurface activeTool={canInteract ? activeTool : 'select'} color={drawingColor} strokeWidth={drawingWidth} onFinish={finishDrawing} onEraseAt={(point) => setNodes((current) => current.filter((node) => { if (node.type !== 'drawing') return true; const width = node.data.width ?? 1; const height = node.data.height ?? 1; return point.x < node.position.x - 14 || point.x > node.position.x + width + 14 || point.y < node.position.y - 14 || point.y > node.position.y + height + 14 }))} />
             <Controls position="bottom-right" showInteractive={false} />
             <CollaborationCursorLayer providerRef={providerRef} wrapperRef={canvasWrapperRef} cursors={remoteCursors} />
           </ReactFlow>
