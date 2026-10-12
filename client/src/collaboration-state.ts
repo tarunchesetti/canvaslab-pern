@@ -4,7 +4,7 @@ export interface CanvasDocumentNode {
   id: string
   type?: string
   position: { x: number; y: number }
-  data: { title: string; text: string; tone?: string; width?: number; height?: number; language?: 'typescript' | 'javascript' }
+  data: { title: string; text: string; tone?: string; width?: number; height?: number; language?: 'typescript' | 'javascript'; backgroundColor?: string; textColor?: string; fontSize?: number; bold?: boolean; italic?: boolean; shape?: 'rectangle' | 'circle' | 'diamond' }
 }
 
 function nestedMap(parent: Y.Map<unknown>, key: string): Y.Map<unknown> {
@@ -61,6 +61,11 @@ function updateSharedNode(record: Y.Map<unknown>, node: CanvasDocumentNode) {
   else if (data.has('height')) data.delete('height')
   if (node.data.language) setIfChanged(data, 'language', node.data.language)
   else if (data.has('language')) data.delete('language')
+  for (const key of ['backgroundColor', 'textColor', 'fontSize', 'bold', 'italic', 'shape'] as const) {
+    const value = node.data[key]
+    if (value !== undefined) setIfChanged(data, key, value)
+    else if (data.has(key)) data.delete(key)
+  }
 
   const sharedText = data.get('text')
   if (sharedText instanceof Y.Text) {
@@ -116,6 +121,12 @@ export function readNodesFromDocument(sharedNodes: Y.Map<Y.Map<unknown>>): Canva
         ...(typeof data.get('tone') === 'string' ? { tone: data.get('tone') as string } : {}),
         ...(typeof data.get('width') === 'number' ? { width: data.get('width') as number } : {}),
         ...(typeof data.get('height') === 'number' ? { height: data.get('height') as number } : {}),
+        ...(typeof data.get('backgroundColor') === 'string' ? { backgroundColor: data.get('backgroundColor') as string } : {}),
+        ...(typeof data.get('textColor') === 'string' ? { textColor: data.get('textColor') as string } : {}),
+        ...(typeof data.get('fontSize') === 'number' ? { fontSize: data.get('fontSize') as number } : {}),
+        ...(typeof data.get('bold') === 'boolean' ? { bold: data.get('bold') as boolean } : {}),
+        ...(typeof data.get('italic') === 'boolean' ? { italic: data.get('italic') as boolean } : {}),
+        ...(data.get('shape') === 'rectangle' || data.get('shape') === 'circle' || data.get('shape') === 'diamond' ? { shape: data.get('shape') as 'rectangle' | 'circle' | 'diamond' } : {}),
         ...(data.get('language') === 'javascript' || data.get('language') === 'typescript' ? { language: data.get('language') as 'javascript' | 'typescript' } : {}),
       },
     })
