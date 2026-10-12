@@ -921,3 +921,26 @@
   .presentation-toggle { min-width:32px; padding:0 8px; }
   .presentation-toggle span { display:none; }
 }
+
+
+.template-tool-button {
+  display: inline-flex;
+  min-height: 31px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid #dfe2d8;
+  border-radius: 7px;
+  background: #fbfcf8;
+  color: #4d5e40;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+.template-tool-button:hover:not(:disabled) { border-color: #aeb8a1; background: #eef2e8; }
+.template-tool-button:disabled { cursor: not-allowed; opacity: .45; }
+@media (max-width: 640px) {
+  .template-tool-button span { display: none; }
+  .template-tool-button { padding: 0 8px; }
+}
