@@ -13,18 +13,24 @@ import {
 import {
   Activity,
   ArrowRight,
+  Bold,
   ChevronDown,
+  Copy,
   Eye,
   EyeOff,
   Code2,
   Command,
   LogOut,
   FilePlus2,
+  Italic,
+  ListChecks,
   LoaderCircle,
   MousePointer2,
   Plus,
   Search,
+  Square,
   StickyNote,
+  Trash2,
   Type,
   Users,
 } from 'lucide-react'
@@ -43,8 +49,14 @@ type CanvasNode = Node<{
   language?: 'typescript' | 'javascript'
   width?: number
   height?: number
+  backgroundColor?: string
+  textColor?: string
+  fontSize?: number
+  bold?: boolean
+  italic?: boolean
+  shape?: 'rectangle' | 'circle' | 'diamond'
   readOnly?: boolean
-}, 'note' | 'code' | 'text'>
+}, 'note' | 'code' | 'text' | 'shape' | 'checklist'>
 
 type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasNodeSignature' | 'readNodesFromDocument' | 'syncNodesToDocument'>
 
@@ -96,7 +108,7 @@ function NoteCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
 
   return (
-    <article className={`note-card ${data.tone ?? ''}`} style={{ width: data.width ?? 240, height: data.height ?? 170 }}>
+    <article className={`note-card ${data.tone ?? ''}`} style={{ width: data.width ?? 240, height: data.height ?? 170, backgroundColor: data.backgroundColor, color: data.textColor, fontSize: data.fontSize ?? 12, fontWeight: data.bold ? 700 : 400, fontStyle: data.italic ? 'italic' : 'normal' }}>
       <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={180} minHeight={120} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
       <div className="node-heading">
         <span className="node-grip" aria-hidden="true">⠿</span>
@@ -104,6 +116,7 @@ function NoteCard({ id, data, selected }: NodeProps<CanvasNode>) {
         <span className="node-dot" />
       </div>
       <textarea
+        style={{ color: data.textColor, fontSize: data.fontSize ?? 12, fontWeight: data.bold ? 700 : 400, fontStyle: data.italic ? 'italic' : 'normal' }}
         className="note-input"
         aria-label={`${data.title} note`}
         value={data.text}
@@ -123,7 +136,7 @@ function TextCard({ id, data, selected }: NodeProps<CanvasNode>) {
     <>
       <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={140} minHeight={48} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
       <textarea
-      style={{ width: data.width ?? 230, height: data.height ?? 70 }}
+      style={{ width: data.width ?? 230, height: data.height ?? 70, color: data.textColor, fontSize: data.fontSize ?? 15, fontWeight: data.bold ? 700 : 400, fontStyle: data.italic ? 'italic' : 'normal' }}
       className="canvas-text-node nodrag"
       aria-label={`${data.title} text`}
       value={data.text}
@@ -158,7 +171,39 @@ function CodeCard({ id, data, selected }: NodeProps<CanvasNode>) {
   )
 }
 
-const nodeTypes = { note: NoteCard, code: CodeCard, text: TextCard }
+function ShapeCard({ id, data, selected }: NodeProps<CanvasNode>) {
+  const { updateNodeData } = useReactFlow<CanvasNode>()
+  const shape = data.shape ?? 'rectangle'
+  return <div className={\`shape-card shape-\${shape}\`} style={{ width: data.width ?? 180, height: data.height ?? 110, backgroundColor: data.backgroundColor ?? '#e4ebff', color: data.textColor ?? '#27314a', fontSize: data.fontSize ?? 14, fontWeight: data.bold ? 700 : 400, fontStyle: data.italic ? 'italic' : 'normal' }}>
+    <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={90} minHeight={70} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
+    <textarea aria-label="Shape label" className="shape-label nodrag" value={data.text} readOnly={data.readOnly} onChange={(event) => updateNodeData(id, { text: event.target.value })} onPointerDown={(event) => event.stopPropagation()} />
+  </div>
+}
+
+function ChecklistCard({ id, data, selected }: NodeProps<CanvasNode>) {
+  const { updateNodeData } = useReactFlow<CanvasNode>()
+  const items = data.text.split('\n')
+  function updateItem(index: number, value: string) {
+    const next = [...items]
+    next[index] = value
+    updateNodeData(id, { text: next.join('\n') })
+  }
+  return <article className="checklist-card" style={{ width: data.width ?? 250, minHeight: data.height ?? 170, backgroundColor: data.backgroundColor ?? '#ffffff', color: data.textColor ?? '#343830', fontSize: data.fontSize ?? 12 }}>
+    <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={200} minHeight={120} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
+    <div className="checklist-heading"><ListChecks size={14} /><input aria-label="Checklist title" value={data.title} readOnly={data.readOnly} onChange={(event) => updateNodeData(id, { title: event.target.value })} onPointerDown={(event) => event.stopPropagation()} /></div>
+    <div className="checklist-items">{items.map((item, index) => {
+      const checked = /^\s*\[x\]\s*/i.test(item)
+      const label = item.replace(/^\s*\[[ x]\]\s*/i, '')
+      return <label className={checked ? 'checklist-item is-checked' : 'checklist-item'} key={index}>
+        <input type="checkbox" checked={checked} disabled={data.readOnly} onChange={() => updateItem(index, checked ? label : \`[x] \${label}\`)} />
+        <input className="checklist-item-text" aria-label={\`Checklist item \${index + 1}\`} value={label} readOnly={data.readOnly} placeholder="Add a task…" onChange={(event) => updateItem(index, \`\${checked ? '[x] ' : '[ ] '}\${event.target.value}\`)} onPointerDown={(event) => event.stopPropagation()} />
+      </label>
+    })}</div>
+    {!data.readOnly && <button type="button" className="checklist-add nodrag" onClick={() => updateNodeData(id, { text: [...items, '[ ] New task'].join('\n') })}>+ Add item</button>}
+  </article>
+}
+
+const nodeTypes = { note: NoteCard, code: CodeCard, text: TextCard, shape: ShapeCard, checklist: ChecklistCard }
 
 function toCanvasNodes(nodes: CanvasDocumentNode[], readOnly: boolean): CanvasNode[] {
   return nodes.map((node) => ({
@@ -684,6 +729,19 @@ function BoardCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([])
   const [activeTool, setActiveTool] = useState('select')
   const [showBoardMenu, setShowBoardMenu] = useState(false)
+  const selectedNode = nodes.find((node) => node.selected && !node.data.readOnly)
+  function updateSelectedNode(patch: Partial<CanvasNode['data']>) {
+    if (!selectedNode) return
+    setNodes((current) => current.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, ...patch } } : node))
+  }
+  function duplicateSelectedNode() {
+    if (!selectedNode) return
+    const duplicate: CanvasNode = { ...selectedNode, id: `node-${crypto.randomUUID()}`, position: { x: selectedNode.position.x + 36, y: selectedNode.position.y + 36 }, selected: true, data: { ...selectedNode.data, readOnly: undefined, title: `${selectedNode.data.title} copy` } }
+    setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), duplicate])
+  }
+  function deleteSelectedNode() {
+    if (selectedNode) setNodes((current) => current.filter((node) => node.id !== selectedNode.id))
+  }
   const [searchQuery, setSearchQuery] = useState('')
   const searchInput = useRef<HTMLInputElement>(null)
   const [collaborationStatus, setCollaborationStatus] = useState<'connecting' | 'connected' | 'offline'>('connecting')
@@ -839,9 +897,9 @@ function BoardCanvas({
     return () => window.removeEventListener('keydown', handleSearchShortcut)
   }, [])
 
-  function addNode(type: 'note' | 'code' | 'text') {
+  function addNode(type: 'note' | 'code' | 'text' | 'shape' | 'checklist') {
     const id = `node-${crypto.randomUUID()}`
-    const size = type === 'code' ? { width: 290, height: 190 } : type === 'text' ? { width: 230, height: 70 } : { width: 240, height: 170 }
+    const size = type === 'code' ? { width: 290, height: 190 } : type === 'text' ? { width: 230, height: 70 } : type === 'shape' ? { width: 180, height: 110 } : type === 'checklist' ? { width: 250, height: 170 } : { width: 240, height: 170 }
     let position = { x: 110, y: 115 }
 
     for (let row = 0; row < 20; row += 1) {
@@ -849,7 +907,7 @@ function BoardCanvas({
       for (let column = 0; column < 6; column += 1) {
         const candidate = { x: 110 + column * 310, y: 115 + row * 245 }
         const overlapsNode = nodes.some((node) => {
-          const nodeSize = node.type === 'code' ? { width: 290, height: 190 } : node.type === 'text' ? { width: 230, height: 70 } : { width: 240, height: 170 }
+          const nodeSize = node.type === 'code' ? { width: 290, height: 190 } : node.type === 'text' ? { width: 230, height: 70 } : node.type === 'shape' ? { width: node.data.width ?? 180, height: node.data.height ?? 110 } : node.type === 'checklist' ? { width: node.data.width ?? 250, height: node.data.height ?? 170 } : { width: 240, height: 170 }
           return candidate.x < node.position.x + nodeSize.width + 28
             && candidate.x + size.width + 28 > node.position.x
             && candidate.y < node.position.y + nodeSize.height + 28
@@ -866,25 +924,14 @@ function BoardCanvas({
     }
 
     const newNode: CanvasNode = type === 'note'
-      ? {
-          id,
-          type,
-          position,
-          data: { title: 'New thought', text: 'Write an idea…', tone: 'note-lemon', width: size.width, height: size.height },
-        }
+      ? { id, type, position, data: { title: 'New thought', text: 'Write an idea…', tone: 'note-lemon', width: size.width, height: size.height } }
       : type === 'text'
-        ? {
-            id,
-            type,
-            position,
-            data: { title: 'Text', text: 'Type something…', width: size.width, height: size.height },
-          }
-        : {
-          id,
-          type,
-          position,
-          data: { title: 'untitled.ts', text: '// Start sketching here', language: 'typescript', width: size.width, height: size.height },
-        }
+        ? { id, type, position, data: { title: 'Text', text: 'Type something…', width: size.width, height: size.height } }
+        : type === 'shape'
+          ? { id, type, position, data: { title: 'Shape', text: 'Label', shape: 'rectangle', backgroundColor: '#e4ebff', textColor: '#27314a', width: size.width, height: size.height } }
+          : type === 'checklist'
+            ? { id, type, position, data: { title: 'Checklist', text: '[ ] First task\n[ ] Second task', backgroundColor: '#ffffff', width: size.width, height: size.height } }
+            : { id, type, position, data: { title: 'untitled.ts', text: '// Start sketching here', language: 'typescript', width: size.width, height: size.height } }
 
     setNodes((currentNodes) => [...currentNodes, newNode])
     setActiveTool('select')
@@ -945,11 +992,21 @@ function BoardCanvas({
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <span className="tool-divider" />
-            <button className={`tool-button ${activeTool === 'note' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Add sticky note" aria-label="Add sticky note" onClick={() => { setActiveTool('note'); addNode('note') }}><StickyNote size={17} /></button>
-            <button className={`tool-button ${activeTool === 'text' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
-            <button className={`tool-button ${activeTool === 'code' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Add code block" aria-label="Add code block" onClick={() => { setActiveTool('code'); addNode('code') }}><Code2 size={17} /></button>
-            <span className="tool-divider" />
-            <button className="tool-button" disabled title="More canvas tools are coming later" aria-label="More canvas tools"><Plus size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add sticky note" aria-label="Add sticky note" onClick={() => { setActiveTool('note'); addNode('note') }}><StickyNote size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add code block" aria-label="Add code block" onClick={() => { setActiveTool('code'); addNode('code') }}><Code2 size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add shape" aria-label="Add shape" onClick={() => { setActiveTool('shape'); addNode('shape') }}><Square size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add checklist" aria-label="Add checklist" onClick={() => { setActiveTool('checklist'); addNode('checklist') }}><ListChecks size={17} /></button>
+          </div>
+          {selectedNode && canInteract && <div className="selection-toolbar" aria-label="Selected object formatting">
+            <label title="Background color"><span>Fill</span><input aria-label="Fill color" type="color" value={selectedNode.data.backgroundColor ?? (selectedNode.type === 'note' ? '#fff1b9' : '#ffffff')} onChange={(event) => updateSelectedNode({ backgroundColor: event.target.value, tone: undefined })} /></label>
+            <label title="Text color"><span>Text</span><input aria-label="Text color" type="color" value={selectedNode.data.textColor ?? '#343830'} onChange={(event) => updateSelectedNode({ textColor: event.target.value })} /></label>
+            <label title="Font size"><span>Size</span><select aria-label="Font size" value={selectedNode.data.fontSize ?? (selectedNode.type === 'text' ? 15 : 12)} onChange={(event) => updateSelectedNode({ fontSize: Number(event.target.value) })}><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16">16</option><option value="20">20</option><option value="24">24</option><option value="32">32</option></select></label>
+            <button type="button" className={selectedNode.data.bold ? 'format-button format-active' : 'format-button'} aria-label="Toggle bold" title="Bold" onClick={() => updateSelectedNode({ bold: !selectedNode.data.bold })}><Bold size={15} /></button>
+            <button type="button" className={selectedNode.data.italic ? 'format-button format-active' : 'format-button'} aria-label="Toggle italic" title="Italic" onClick={() => updateSelectedNode({ italic: !selectedNode.data.italic })}><Italic size={15} /></button>
+            {selectedNode.type === 'shape' && <label title="Shape type"><span>Shape</span><select aria-label="Shape type" value={selectedNode.data.shape ?? 'rectangle'} onChange={(event) => updateSelectedNode({ shape: event.target.value as 'rectangle' | 'circle' | 'diamond' })}><option value="rectangle">Rectangle</option><option value="circle">Circle</option><option value="diamond">Diamond</option></select></label>}
+            <button type="button" className="format-button" aria-label="Duplicate selected object" title="Duplicate" onClick={duplicateSelectedNode}><Copy size={15} /></button>
+            <button type="button" className="format-button format-danger" aria-label="Delete selected object" title="Delete" onClick={deleteSelectedNode}><Trash2 size={15} /></button>
           </div>
 
           <label className="canvas-search"><Search size={15} /><input ref={searchInput} aria-label="Find on canvas" placeholder="Find on canvas" value={searchQuery} onChange={(event) => searchCanvas(event.target.value)} /><kbd>Ctrl K</kbd></label>
