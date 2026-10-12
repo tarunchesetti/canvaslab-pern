@@ -237,5 +237,58 @@ export function createCollaborationRouter(pool: Pool): Router {
     return res.status(201).json({ template: result.rows[0] })
   })
 
+
+  const decisionSchema = z.object({
+    title: z.string().trim().min(1).max(240),
+    rationale: z.string().max(5000).default(''),
+    ownerId: z.string().uuid().nullable().optional(),
+    sourceElementId: z.string().trim().min(1).max(180).nullable().optional(),
+    status: z.enum(['proposed', 'accepted', 'rejected', 'superseded']).optional(),
+  })
+
+  router.get('/boards/:boardId/decisions', async (req, res) => {
+    const boardId = parseBoardId(req.params.boardId)
+    if (!boardId) return res.status(400).json({ error: 'Invalid board ID' })
+    if (!await getRole(pool, boardId, sessionUserId(req))) return res.status(404).json({ error: 'Board not found' })
+    const result = await pool.query("SELECT d.*, o.display_name AS owner_name, u.display_name AS creator_name FROM board_decisions d LEFT JOIN users o ON o.id = d.owner_id JOIN users u ON u.id = d.created_by WHERE d.board_id = $1 ORDER BY d.updated_at DESC LIMIT 200", [boardId])
+    return res.json({ decisions: result.rows })
+  })
+
+  router.post('/boards/:boardId/decisions', async (req, res) => {
+    const boardId = parseBoardId(req.params.boardId)
+    const parsed = decisionSchema.safeParse(req.body)
+    if (!boardId || !parsed.success) return res.status(400).json({ error: 'Invalid decision record' })
+    const userId = sessionUserId(req)
+    const role = await getRole(pool, boardId, userId)
+    if (!role) return res.status(404).json({ error: 'Board not found' })
+    if (!canEdit(role)) return res.status(403).json({ error: 'Editor access required' })
+    if (parsed.data.ownerId) {
+      const member = await pool.query('SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2', [boardId, parsed.data.ownerId])
+      if (!member.rowCount) return res.status(400).json({ error: 'Decision owner must be a board member' })
+    }
+    const result = await pool.query("INSERT INTO board_decisions (id, board_id, title, rationale, owner_id, source_element_id, created_by, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *", [randomUUID(), boardId, parsed.data.title, parsed.data.rationale, parsed.data.ownerId ?? null, parsed.data.sourceElementId ?? null, userId, parsed.data.status ?? 'proposed'])
+    await recordActivity(pool, boardId, userId, 'decision.created', { decisionId: result.rows[0].id, title: parsed.data.title }, 'Decision recorded', parsed.data.title)
+    return res.status(201).json({ decision: result.rows[0] })
+  })
+
+  router.patch('/boards/:boardId/decisions/:decisionId', async (req, res) => {
+    const boardId = parseBoardId(req.params.boardId)
+    const parsed = decisionSchema.partial().safeParse(req.body)
+    if (!boardId || !parsed.success || Object.keys(parsed.data).length === 0) return res.status(400).json({ error: 'Invalid decision update' })
+    const userId = sessionUserId(req)
+    const role = await getRole(pool, boardId, userId)
+    if (!role) return res.status(404).json({ error: 'Board not found' })
+    if (!canEdit(role)) return res.status(403).json({ error: 'Editor access required' })
+    if (parsed.data.ownerId) {
+      const member = await pool.query('SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2', [boardId, parsed.data.ownerId])
+      if (!member.rowCount) return res.status(400).json({ error: 'Decision owner must be a board member' })
+    }
+    const p = parsed.data
+    const result = await pool.query("UPDATE board_decisions SET title = COALESCE($1,title), rationale = COALESCE($2,rationale), status = COALESCE($3,status), owner_id = CASE WHEN $4 THEN $5::uuid ELSE owner_id END, source_element_id = COALESCE($6,source_element_id), updated_at = NOW() WHERE id = $7 AND board_id = $8 RETURNING *", [p.title ?? null, p.rationale ?? null, p.status ?? null, p.ownerId !== undefined, p.ownerId ?? null, p.sourceElementId ?? null, req.params.decisionId, boardId])
+    if (!result.rowCount) return res.status(404).json({ error: 'Decision not found' })
+    await recordActivity(pool, boardId, userId, 'decision.updated', { decisionId: req.params.decisionId, status: p.status }, 'Decision updated', p.title ?? p.status ?? 'Decision details changed')
+    return res.json({ decision: result.rows[0] })
+  })
+
   return router
 }
