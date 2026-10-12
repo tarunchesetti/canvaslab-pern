@@ -934,7 +934,7 @@ function BoardCanvas({
           <div className="topbar-actions">
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
-            <button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> People</button>
+            <button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> Share</button>
           </div>
         </header>
 
