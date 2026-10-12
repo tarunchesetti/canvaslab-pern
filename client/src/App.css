@@ -821,3 +821,25 @@
   .mobile-workspace-divider { width:1px; height:22px; flex:0 0 1px; background:#e7e8e1; }
   .mobile-workspace-label { flex:0 0 auto; padding:0 2px; color:#8a8d83; font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; white-space:nowrap; }
 }
+
+
+/* Keep the Share label fully inside its button on narrow mobile screens. */
+@media (max-width:390px) {
+  .topbar-actions .invite-button {
+    width:auto;
+    min-width:62px;
+    height:31px;
+    min-height:31px;
+    padding:0 9px;
+    gap:5px;
+    font-size:11px;
+    line-height:1;
+    flex:0 0 auto;
+    white-space:nowrap;
+  }
+  .topbar-actions .invite-button svg {
+    width:14px;
+    height:14px;
+    flex:0 0 14px;
+  }
+}
