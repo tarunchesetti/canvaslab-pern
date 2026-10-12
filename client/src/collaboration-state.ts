@@ -4,7 +4,7 @@ export interface CanvasDocumentNode {
   id: string
   type?: string
   position: { x: number; y: number }
-  data: { title: string; text: string; tone?: string; width?: number; height?: number; language?: 'typescript' | 'javascript'; backgroundColor?: string; textColor?: string; fontSize?: number; bold?: boolean; italic?: boolean; shape?: 'rectangle' | 'circle' | 'diamond' }
+  data: { title: string; text: string; tone?: string; width?: number; height?: number; language?: 'typescript' | 'javascript'; backgroundColor?: string; textColor?: string; fontSize?: number; bold?: boolean; italic?: boolean; shape?: 'rectangle' | 'circle' | 'diamond'; path?: string; strokeColor?: string; strokeWidth?: number; strokeOpacity?: number }
 }
 
 function nestedMap(parent: Y.Map<unknown>, key: string): Y.Map<unknown> {
@@ -61,7 +61,7 @@ function updateSharedNode(record: Y.Map<unknown>, node: CanvasDocumentNode) {
   else if (data.has('height')) data.delete('height')
   if (node.data.language) setIfChanged(data, 'language', node.data.language)
   else if (data.has('language')) data.delete('language')
-  for (const key of ['backgroundColor', 'textColor', 'fontSize', 'bold', 'italic', 'shape'] as const) {
+  for (const key of ['backgroundColor', 'textColor', 'fontSize', 'bold', 'italic', 'shape', 'path', 'strokeColor', 'strokeWidth', 'strokeOpacity'] as const) {
     const value = node.data[key]
     if (value !== undefined) setIfChanged(data, key, value)
     else if (data.has(key)) data.delete(key)
@@ -128,6 +128,10 @@ export function readNodesFromDocument(sharedNodes: Y.Map<Y.Map<unknown>>): Canva
         ...(typeof data.get('italic') === 'boolean' ? { italic: data.get('italic') as boolean } : {}),
         ...(data.get('shape') === 'rectangle' || data.get('shape') === 'circle' || data.get('shape') === 'diamond' ? { shape: data.get('shape') as 'rectangle' | 'circle' | 'diamond' } : {}),
         ...(data.get('language') === 'javascript' || data.get('language') === 'typescript' ? { language: data.get('language') as 'javascript' | 'typescript' } : {}),
+        ...(typeof data.get('path') === 'string' ? { path: data.get('path') as string } : {}),
+        ...(typeof data.get('strokeColor') === 'string' ? { strokeColor: data.get('strokeColor') as string } : {}),
+        ...(typeof data.get('strokeWidth') === 'number' ? { strokeWidth: data.get('strokeWidth') as number } : {}),
+        ...(typeof data.get('strokeOpacity') === 'number' ? { strokeOpacity: data.get('strokeOpacity') as number } : {}),
       },
     })
   })
