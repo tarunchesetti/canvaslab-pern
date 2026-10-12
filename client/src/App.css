@@ -11,7 +11,6 @@
   width: 244px;
   min-width: 244px;
   flex-direction: column;
-  border-right: 1px solid var(--line);
   background: #fbfbf9;
   padding: 22px 14px 14px;
 }
@@ -150,6 +149,10 @@
 }
 .breadcrumbs, .topbar-actions { display: flex; align-items: center; }
 .breadcrumbs { min-width: 0; gap: 11px; color: #92948e; font-size: 11px; }
+.header-all-boards { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 5px; background: transparent; padding: 5px 7px; color: #666960; cursor: pointer; font: inherit; font-size: 11px; white-space: nowrap; }
+.header-all-boards:hover { background: #f0f1ec; color: #30322d; }
+.header-all-boards .nav-glyph { font-size: 15px; }
+.header-create-board { flex: 0 0 auto; }
 .breadcrumbs strong { overflow: hidden; color: #353831; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .breadcrumb-slash { color: #c4c5bf; }
 .private-tag { border: 1px solid #e6e7e2; border-radius: 4px; padding: 2px 5px; color: #8a8c85; font-size: 8px; font-weight: 700; letter-spacing: 0.5px; }
@@ -205,7 +208,6 @@
 .tool-button:disabled { cursor: not-allowed; opacity: 0.42; }
 .tool-selected { background: #e9ece3; color: #454f3b; }
 .tool-selected:hover { background: #e2e6da; }
-.tool-divider { width: 1px; height: 20px; margin: 0 3px; background: #e8e9e4; }
 .canvas-live { position: absolute; z-index: 4; top: 65px; right: 22px; display: flex; align-items: center; gap: 6px; color: #777a73; font-size: 9px; }
 .live-indicator { width: 6px; height: 6px; }
 
@@ -670,7 +672,6 @@
   }
   .canvas-toolbar::-webkit-scrollbar { display: none; }
   .tool-button { width: 31px; min-width: 31px; height: 32px; flex: 0 0 31px; }
-  .tool-divider { flex: 0 0 1px; }
   .canvas-live { top: 67px; right: 10px; max-width: 112px; justify-content: flex-end; text-align: right; }
   .drawing-options {
     top: 98px; left: 9px; right: 9px; max-width: none; width: auto;
@@ -787,8 +788,8 @@
 @media (max-width:390px) {
   .mobile-brand { gap:5px; font-size:14px; }
   .mobile-brand .brand-mark { width:23px; height:23px; }
-  .mobile-create-board { width:31px; min-width:31px; padding:0; }
-  .mobile-create-board span { display:none; }
+  .header-create-board { min-height: 31px; padding: 0 8px; }
+  .header-create-board span { display: inline; }
   .invite-button { width:32px; min-width:32px; padding:0; font-size:0; }
   .invite-button svg { flex:0 0 auto; }
 }
@@ -804,8 +805,7 @@
   .mobile-workspace-nav .mobile-workspace-board-active { border-color:#d9ddce; background:#eff1e8; color:#30342b; font-weight:600; }
   .mobile-workspace-nav .board-color { flex:0 0 8px; width:8px; height:8px; }
   .mobile-workspace-nav .nav-count { margin-left:1px; }
-  .mobile-workspace-divider { width:1px; height:22px; flex:0 0 1px; background:#e7e8e1; }
-  .mobile-workspace-label { flex:0 0 auto; padding:0 2px; color:#8a8d83; font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; white-space:nowrap; }
+    .mobile-workspace-label { flex:0 0 auto; padding:0 2px; color:#8a8d83; font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; white-space:nowrap; }
 }
 
 
