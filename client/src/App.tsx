@@ -33,6 +33,8 @@ import {
   Plus,
   Search,
   Square,
+  Circle,
+  Diamond,
   StickyNote,
   Trash2,
   Type,
@@ -959,7 +961,7 @@ function BoardCanvas({
     return () => window.removeEventListener('keydown', handleSearchShortcut)
   }, [])
 
-  function addNode(type: 'note' | 'code' | 'text' | 'shape' | 'checklist') {
+  function addNode(type: 'note' | 'code' | 'text' | 'shape' | 'checklist', shape: 'rectangle' | 'circle' | 'diamond' = 'rectangle') {
     const id = `node-${crypto.randomUUID()}`
     const size = type === 'code' ? { width: 290, height: 190 } : type === 'text' ? { width: 230, height: 70 } : type === 'shape' ? { width: 180, height: 110 } : type === 'checklist' ? { width: 250, height: 170 } : { width: 240, height: 170 }
     let position = { x: 110, y: 115 }
@@ -990,7 +992,7 @@ function BoardCanvas({
       : type === 'text'
         ? { id, type, position, data: { title: 'Text', text: 'Type something…', width: size.width, height: size.height } }
         : type === 'shape'
-          ? { id, type, position, data: { title: 'Shape', text: 'Label', shape: 'rectangle', backgroundColor: '#e4ebff', textColor: '#27314a', width: size.width, height: size.height } }
+          ? { id, type, position, data: { title: 'Shape', text: 'Label', shape, backgroundColor: '#e4ebff', textColor: '#27314a', width: size.width, height: size.height } }
           : type === 'checklist'
             ? { id, type, position, data: { title: 'Checklist', text: '[ ] First task\n[ ] Second task', backgroundColor: '#ffffff', width: size.width, height: size.height } }
             : { id, type, position, data: { title: 'untitled.ts', text: '// Start sketching here', language: 'typescript', width: size.width, height: size.height } }
@@ -1077,6 +1079,7 @@ function BoardCanvas({
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
             <button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> Share</button>
+            <button className="button button-outline mobile-signout" onClick={onLogout} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
           </div>
         </header>
 
@@ -1096,7 +1099,9 @@ function BoardCanvas({
             <button className="tool-button" disabled={!canInteract} title="Add sticky note" aria-label="Add sticky note" onClick={() => { setActiveTool('note'); addNode('note') }}><StickyNote size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add code block" aria-label="Add code block" onClick={() => { setActiveTool('code'); addNode('code') }}><Code2 size={17} /></button>
-            <button className="tool-button" disabled={!canInteract} title="Add shape" aria-label="Add shape" onClick={() => { setActiveTool('shape'); addNode('shape') }}><Square size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add rectangle" aria-label="Add rectangle" onClick={() => addNode('shape', 'rectangle')}><Square size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add circle" aria-label="Add circle" onClick={() => addNode('shape', 'circle')}><Circle size={17} /></button>
+            <button className="tool-button" disabled={!canInteract} title="Add diamond" aria-label="Add diamond" onClick={() => addNode('shape', 'diamond')}><Diamond size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add checklist" aria-label="Add checklist" onClick={() => { setActiveTool('checklist'); addNode('checklist') }}><ListChecks size={17} /></button>
           </div>
           {['pen', 'brush', 'highlighter'].includes(activeTool) && canInteract && <div className="drawing-options" aria-label="Drawing options">
