@@ -206,11 +206,6 @@
 .tool-selected { background: #e9ece3; color: #454f3b; }
 .tool-selected:hover { background: #e2e6da; }
 .tool-divider { width: 1px; height: 20px; margin: 0 3px; background: #e8e9e4; }
-.canvas-search { position: absolute; z-index: 4; top: 21px; right: 22px; display: flex; height: 31px; align-items: center; gap: 7px; padding: 0 8px; border: 1px solid #e4e5df; border-radius: 6px; background: #fff; color: #898b85; font-size: 10px; box-shadow: 0 2px 7px #24271c0c; }
-.canvas-search input { width: 116px; border: 0; outline: 0; background: transparent; color: #555950; font: 10px var(--body); }
-.canvas-search input::placeholder { color: #898b85; }
-.canvas-search:focus-within { border-color: #9ba891; box-shadow: 0 0 0 2px #87977c20; }
-.canvas-search kbd { margin-left: 12px; border: 1px solid #e9eae5; border-radius: 3px; padding: 1px 4px; color: #9a9c96; font: 9px var(--mono); }
 .canvas-live { position: absolute; z-index: 4; top: 65px; right: 22px; display: flex; align-items: center; gap: 6px; color: #777a73; font-size: 9px; }
 .live-indicator { width: 6px; height: 6px; }
 
@@ -271,9 +266,6 @@
   .board-canvas-wrap { min-height: 360px; }
   .canvas-toolbar { top: 12px; left: 11px; gap: 1px; padding: 4px; }
   .tool-button { width: 29px; height: 30px; }
-  .canvas-search { top: 14px; right: 11px; width: auto; justify-content: flex-start; padding: 0 7px; }
-  .canvas-search input { width: 70px; }
-  .canvas-search kbd { display: none; }
   .canvas-live { top: 53px; right: 12px; }
   .canvas-hint { left: 12px; bottom: 13px; transform: none; font-size: 8px; }
   .minimap-preview { right: 10px; bottom: 41px; transform: scale(0.82); transform-origin: right bottom; }
@@ -679,11 +671,6 @@
   .canvas-toolbar::-webkit-scrollbar { display: none; }
   .tool-button { width: 31px; min-width: 31px; height: 32px; flex: 0 0 31px; }
   .tool-divider { flex: 0 0 1px; }
-  .canvas-search {
-    top: 58px; left: 9px; right: auto; width: min(160px, calc(100% - 120px));
-    max-width: calc(100% - 120px); height: 30px;
-  }
-  .canvas-search input { width: 100%; min-width: 0; }
   .canvas-live { top: 67px; right: 10px; max-width: 112px; justify-content: flex-end; text-align: right; }
   .drawing-options {
     top: 98px; left: 9px; right: 9px; max-width: none; width: auto;
@@ -713,7 +700,6 @@
   .board-heading p { font-size: 11px; }
   .board-canvas-wrap { min-height: 400px; }
   .canvas-toolbar { left: 6px; right: 6px; }
-  .canvas-search { left: 7px; }
   .canvas-live { right: 7px; max-width: 100px; font-size: 8px; }
   .drawing-options, .selection-toolbar { left: 7px; right: 7px; }
   .workspace-footer { font-size: 8px; }
