@@ -45,6 +45,7 @@ import { acceptBoardInvitation, inviteBoardMember, ApiError, createBoard, delete
 import type * as Yjs from 'yjs'
 import { passwordsMatch } from './auth-validation'
 import type { CanvasDocumentNode } from './collaboration-state'
+import { CollaborationPanel } from './CollaborationPanel'
 import '@xyflow/react/dist/style.css'
 import './App.css'
 
@@ -798,6 +799,8 @@ function BoardCanvas({
   const [drawingColor, setDrawingColor] = useState('#26352a')
   const [drawingWidth, setDrawingWidth] = useState(3)
   const [showBoardMenu, setShowBoardMenu] = useState(false)
+  const [showCollaborationPanel, setShowCollaborationPanel] = useState(false)
+  const [presentationMode, setPresentationMode] = useState(false)
   const selectedNode = nodes.find((node) => node.selected && !node.data.readOnly)
   function updateSelectedNode(patch: Partial<CanvasNode['data']>) {
     if (!selectedNode) return
@@ -1051,7 +1054,7 @@ function BoardCanvas({
   }
 
   return (
-    <main className="app-shell">
+    <main className={presentationMode ? "app-shell presentation-mode" : "app-shell"}>
       <aside className={`sidebar ${mobileNavOpen ? "mobile-nav-open" : ""}`}>
         <a className="brand" href="#board" aria-label="CanvasLab home">
           <span className="brand-mark"><Command size={17} strokeWidth={2.5} /></span>
@@ -1084,7 +1087,7 @@ function BoardCanvas({
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
             <button className="button button-outline mobile-create-board" onClick={onCreateBoard}><Plus size={16} /><span>New board</span></button>
-            <button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> Share</button>
+            <button className="button button-outline presentation-toggle" onClick={() => setPresentationMode((current) => !current)} title={presentationMode ? "Exit presentation mode" : "Enter presentation mode"}>{presentationMode ? <EyeOff size={15} /> : <Eye size={15} />}<span>{presentationMode ? "Exit present" : "Present"}</span></button><button className="button button-outline collab-open-button" onClick={() => setShowCollaborationPanel(true)} title="Comments, tasks, voting, and activity"><Activity size={15} /><span>Collab</span></button><button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> Share</button>
             <button className="button button-outline mobile-signout" onClick={onLogout} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
           </div>
         </header>
@@ -1165,6 +1168,7 @@ function BoardCanvas({
         </div>
 
         <footer className="workspace-footer"><span><span className={`footer-dot ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationReady ? 'Document synced' : collaborationStatus === 'offline' ? 'Sync unavailable' : 'Syncing document'}</span><span>100%</span><span className="footer-separator" /><span>{nodes.length} objects</span><button className="footer-shortcut" onClick={onCreateBoard}><FilePlus2 size={13} /> New board</button></footer>
+        {showCollaborationPanel && <CollaborationPanel board={board} canEdit={canEdit} selectedElement={selectedNode ? { id: selectedNode.id, title: selectedNode.data.title || selectedNode.id } : null} elements={nodes.map((node) => ({ id: node.id, title: node.data.title || node.id }))} onClose={() => setShowCollaborationPanel(false)} />}
       </section>
     </main>
   )

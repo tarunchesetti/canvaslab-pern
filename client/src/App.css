@@ -906,3 +906,18 @@
     font-size:7px;
   }
 }
+
+/* Presentation mode keeps the board visible while hiding editing chrome. */
+.presentation-mode .sidebar,
+.presentation-mode .mobile-workspace-nav,
+.presentation-mode .canvas-toolbar,
+.presentation-mode .canvas-hint,
+.presentation-mode .workspace-footer { display:none !important; }
+.presentation-mode .workspace { width:100%; }
+.presentation-mode .board-canvas-wrap { height:calc(100vh - 82px); min-height:calc(100vh - 82px); }
+.presentation-mode .topbar { border-bottom:1px solid var(--line); }
+@media (max-width:760px) {
+  .presentation-mode .board-canvas-wrap { height:calc(100dvh - 72px); min-height:calc(100dvh - 72px); }
+  .presentation-toggle { min-width:32px; padding:0 8px; }
+  .presentation-toggle span { display:none; }
+}
