@@ -1093,8 +1093,6 @@ function BoardCanvas({
           <button className="mobile-workspace-link" onClick={() => onShowBoards('shared')}><Users size={15} /><span>Shared with me</span></button>
           <button className="mobile-workspace-link" onClick={() => onShowBoards('owned')}><Command size={15} /><span>Your boards</span></button>
           <span className="mobile-workspace-divider" />
-          <span className="mobile-workspace-label">Your boards</span>
-          {boards.slice(0, 8).map((item, index) => <button key={item.id} className={`mobile-workspace-board ${item.id === board.id ? 'mobile-workspace-board-active' : ''}`} onClick={() => onSelectBoard(item.id)}><span className={`board-color ${['color-lilac', 'color-sky', 'color-peach', 'color-green'][index % 4]}`} /><span>{item.title}</span></button>)}
         </nav>
         {mobileNavOpen && <div className="mobile-header-menu">
           <div className="mobile-menu-account"><span className="workspace-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{user.displayName}</strong><small>{user.email}</small></span></div>
