@@ -1081,7 +1081,7 @@ function BoardCanvas({
 
       <section className="workspace" id="board">
         <header className="topbar">
-          <button className="mobile-nav-toggle" aria-label={mobileNavOpen ? "Collapse navigation" : "Expand navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={18} /> : <Menu size={18} />}</button><div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
+          <button className="mobile-nav-toggle" aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={18} /> : <Menu size={18} />}</button><div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
           <div className="topbar-actions">
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
@@ -1089,6 +1089,14 @@ function BoardCanvas({
             <button className="button button-outline mobile-signout" onClick={onLogout} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
           </div>
         </header>
+        {mobileNavOpen && <div className="mobile-header-menu">
+          <div className="mobile-menu-account"><span className="workspace-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{user.displayName}</strong><small>{user.email}</small></span></div>
+          <button onClick={() => { onShowBoards('all'); setMobileNavOpen(false) }}><span className="nav-glyph">▦</span><span>All boards</span><span className="nav-count">{boards.length}</span></button>
+          <button onClick={() => { onShowBoards('shared'); setMobileNavOpen(false) }}><Users size={16} /><span>Shared with me</span></button>
+          <div className="mobile-menu-label">YOUR BOARDS <button aria-label="Create board" onClick={() => { setMobileNavOpen(false); onCreateBoard() }}><Plus size={15} /></button></div>
+          {boards.slice(0, 8).map((item, index) => <button key={item.id} className={item.id === board.id ? 'mobile-board-current' : ''} onClick={() => { onSelectBoard(item.id); setMobileNavOpen(false) }}><span className={`board-color ${['color-lilac', 'color-sky', 'color-peach', 'color-green'][index % 4]}`} /><span>{item.title}</span></button>)}
+          <button className="mobile-menu-signout" onClick={onLogout}><LogOut size={16} /><span>Sign out</span></button>
+        </div>}
 
         <div className="board-heading">
           <div><div className="eyebrow"><span className="eyebrow-line" /> CANVAS BOARD <span className="heading-dot">·</span> {new Date(board.updated_at).toLocaleDateString()}</div><div className="board-title-line"><h1>{board.title}</h1><button className="title-chevron" aria-label="Board options" aria-expanded={showBoardMenu} onClick={() => setShowBoardMenu((visible) => !visible)}><ChevronDown size={16} /></button>{showBoardMenu && <div className="board-options-menu" role="menu">{canEdit && <button role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('rename') }}>Rename board</button>}{board.role === 'owner' && <button className="menu-danger" role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('delete') }}>Delete board</button>}</div>}</div><p>Shape the next version of how we think together.</p></div>
