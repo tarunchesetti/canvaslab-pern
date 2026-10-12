@@ -4,7 +4,28 @@ import type { Board } from './api'
 import './CollaborationPanel.css'
 
 type Tab = 'comments' | 'tasks' | 'vote' | 'decisions' | 'activity' | 'history' | 'templates' | 'inbox'
-type Item = Record<string, any>
+type Item = {
+  id: string
+  body?: string
+  author_name?: string
+  created_at?: string
+  resolved_at?: string | null
+  element_id?: string | null
+  title?: string
+  status?: string
+  priority?: string
+  description?: string
+  session_id?: string
+  vote_count?: number
+  event_type?: string
+  actor_name?: string
+  payload?: { title?: string }
+  document_version?: number
+  read_at?: string | null
+  board_title?: string
+  rationale?: string
+  source_element_id?: string | null
+}
 type ElementSummary = { id: string; title: string }
 const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
 
@@ -95,7 +116,7 @@ export function CollaborationPanel({ board, canEdit, selectedElement, elements, 
             {canEdit && <form className="collab-inline-form" onSubmit={(event) => { event.preventDefault(); if (!decisionTitle.trim()) return; void run(async () => { await api('/boards/' + board.id + '/decisions', { method: 'POST', body: JSON.stringify({ title: decisionTitle.trim(), rationale: decisionRationale.trim(), sourceElementId: selectedElement?.id ?? null }) }); setDecisionTitle(''); setDecisionRationale('') }) }}><input value={decisionTitle} onChange={(event) => setDecisionTitle(event.target.value)} placeholder="What did the team decide?" maxLength={240} /><textarea value={decisionRationale} onChange={(event) => setDecisionRationale(event.target.value)} placeholder="Why was this chosen? (optional)" rows={3} maxLength={5000} /><button className="auth-submit" disabled={busy || !decisionTitle.trim()}><Plus size={15} /> Record decision</button></form>}
             <div className="collab-item-list">{decisions.map((decision) => <article className="collab-item" key={decision.id}><div className="collab-item-meta"><strong>{decision.title}</strong><span>{decision.status}</span></div>{decision.rationale && <p>{decision.rationale}</p>}{decision.source_element_id && <small>Linked to {elements.find((el) => el.id === decision.source_element_id)?.title || 'a board element'}</small>}{canEdit && <div className="collab-task-controls"><select aria-label={'Status for decision ' + decision.title} disabled={busy} value={decision.status} onChange={(event) => void run(() => api('/boards/' + board.id + '/decisions/' + decision.id, { method: 'PATCH', body: JSON.stringify({ status: event.target.value }) }))}><option value="proposed">Proposed</option><option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="superseded">Superseded</option></select></div>}</article>)}{!decisions.length && <p className="collab-empty">Capture the outcome and rationale so teammates can catch up asynchronously.</p>}</div>
           </>}
-          {tab === 'activity' && <div className="collab-item-list">{activity.map((item) => <article className="collab-item" key={item.id}><div className="collab-item-meta"><strong>{item.actor_name || 'CanvasLab'}</strong><span>{new Date(item.created_at).toLocaleString()}</span></div><p>{item.event_type.replaceAll('.', ' ')}</p>{item.payload?.title && <small>{item.payload.title}</small>}</article>)}{!activity.length && <p className="collab-empty">Board activity will appear here.</p>}</div>}
+          {tab === 'activity' && <div className="collab-item-list">{activity.map((item) => <article className="collab-item" key={item.id}><div className="collab-item-meta"><strong>{item.actor_name || 'CanvasLab'}</strong><span>{new Date(item.created_at).toLocaleString()}</span></div><p>{(item.event_type || 'activity').replaceAll('.', ' ')}</p>{item.payload?.title && <small>{item.payload.title}</small>}</article>)}{!activity.length && <p className="collab-empty">Board activity will appear here.</p>}</div>}
           {tab === 'history' && <><button className="auth-submit collab-full-button" disabled={!canEdit || busy} onClick={() => void run(() => api('/boards/' + board.id + '/snapshots', { method: 'POST', body: JSON.stringify({ label: 'Snapshot · ' + new Date().toLocaleString() }) }))}><History size={15} /> Save current snapshot</button><p className="collab-section-hint">Snapshots preserve the latest saved document. Restore is held until active collaborators can safely reload.</p>{snapshots.map((snapshot) => <article className="collab-item" key={snapshot.id}><strong>{snapshot.label}</strong><p>Document version {snapshot.document_version}</p><small>{new Date(snapshot.created_at).toLocaleString()}</small></article>)}{!snapshots.length && <p className="collab-empty">Save a snapshot before a major workshop.</p>}</>}
           {tab === 'templates' && <><form className="collab-inline-form compact" onSubmit={(event) => { event.preventDefault(); if (!templateTitle.trim()) return; void run(async () => { await api('/templates', { method: 'POST', body: JSON.stringify({ title: templateTitle.trim(), description: 'Saved from ' + board.title, category: 'team', document: { boardId: board.id, elements } }) }); setTemplateTitle('') }) }}><input value={templateTitle} onChange={(event) => setTemplateTitle(event.target.value)} placeholder="Save board as a template" maxLength={120} /><button className="auth-submit" disabled={busy || !templateTitle.trim()}><Plus size={15} /> Save</button></form>{templates.map((template) => <article className="collab-item" key={template.id}><strong>{template.title}</strong><p>{template.description || template.category}</p><small>Template · {new Date(template.created_at).toLocaleDateString()}</small></article>)}{!templates.length && <p className="collab-empty">Save repeatable team workflows as templates.</p>}</>}
           {tab === 'inbox' && <div className="collab-item-list">{notifications.map((notification) => <article className={notification.read_at ? 'collab-item' : 'collab-item notification-unread'} key={notification.id}><div className="collab-item-meta"><strong>{notification.title}</strong>{!notification.read_at && <span>New</span>}</div><p>{notification.body}</p><small>{notification.board_title || 'CanvasLab'} · {new Date(notification.created_at).toLocaleString()}</small>{!notification.read_at && <button className="collab-text-action" onClick={() => void run(() => api('/notifications/' + notification.id + '/read', { method: 'PATCH' }))}><Check size={13} /> Mark read</button>}</article>)}{!notifications.length && <p className="collab-empty">You're all caught up.</p>}</div>}
