@@ -1200,7 +1200,7 @@ function BoardCanvas({
           <div className="canvas-hint"><MousePointer2 size={13} /> Drag anything to make room for a new idea</div>
         </div>
 
-        <footer className="workspace-footer"><span><span className={`footer-dot ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationReady ? 'Document synced' : collaborationStatus === 'offline' ? 'Sync unavailable' : 'Syncing document'}</span><span>100%</span><span className="footer-separator" /><span>{nodes.length} objects</span><button className="footer-shortcut" onClick={onCreateBoard}><FilePlus2 size={13} /> New board</button></footer>
+        
         {showCollaborationPanel && <CollaborationPanel board={board} canEdit={canEdit} selectedElement={selectedNode ? { id: selectedNode.id, title: selectedNode.data.title || selectedNode.id } : null} elements={nodes.map((node) => ({ id: node.id, title: node.data.title || node.id }))} onClose={() => setShowCollaborationPanel(false)} />}
         {showTemplateGallery && <TemplateGallery onChoose={applyTemplate} onClose={() => setShowTemplateGallery(false)} />}
       </section>
