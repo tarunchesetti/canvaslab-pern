@@ -69,6 +69,14 @@
 .workspace-copy small, .profile-copy small { color: #91938d; font-size: 10px; }
 .workspace-switcher > svg { color: #81837c; }
 
+.sidebar-create-board {
+  width: 100%;
+  min-height: 36px;
+  justify-content: flex-start;
+  margin-top: 12px;
+  padding: 0 11px;
+}
+
 .sidebar-label {
   display: flex;
   align-items: center;
@@ -775,6 +783,8 @@
   .mobile-menu-label { display:flex; align-items:center; justify-content:space-between; padding:12px 10px 4px; color:#92958c; font-size:10px; font-weight:700; letter-spacing:.7px; }
   .mobile-menu-label button { display:grid; width:28px; height:28px; place-items:center; border:0; border-radius:6px; background:#f2f3ee; color:#42453d; }
   .mobile-header-menu .board-color { flex:0 0 9px; }
+  .mobile-header-menu .mobile-menu-create-board { margin: 5px 0 2px; background:#292c27; color:#fff; font-weight:600; }
+  .mobile-header-menu .mobile-menu-create-board:hover, .mobile-header-menu .mobile-menu-create-board:active { background:#41453d; }
   .mobile-header-menu .mobile-menu-signout { margin-top:6px; border-top:1px solid #ecece7; border-radius:0; color:#a0443d; }
 }
 
