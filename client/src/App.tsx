@@ -14,6 +14,8 @@ import {
   Activity,
   ArrowRight,
   ChevronDown,
+  Eye,
+  EyeOff,
   Code2,
   Command,
   LogOut,
@@ -202,6 +204,8 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordVisible, setPasswordVisible] = useState(false)
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
   const [error, setError] = useState(initialError)
   const [notice, setNotice] = useState('')
   const [resetUrl, setResetUrl] = useState('')
@@ -278,8 +282,8 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
           <form className="auth-form" onSubmit={handleSubmit}>
             {mode === 'register' && <label>Name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={80} placeholder="How should we call you?" /></label>}
             {mode !== 'reset' && <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>}
-            {mode !== 'forgot' && <label>Password<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' || mode === 'reset' ? 12 : 1} maxLength={72} placeholder={mode === 'register' || mode === 'reset' ? 'At least 12 characters' : 'Your password'} /></label>}
-            {(mode === 'register' || mode === 'reset') && <label>Confirm password<input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword)} />{confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword) && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
+            {mode !== 'forgot' && <label>Password<div className="password-input-wrap"><input type={passwordVisible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' || mode === 'reset' ? 12 : 1} maxLength={72} placeholder={mode === 'register' || mode === 'reset' ? 'At least 12 characters' : 'Your password'} /><button type="button" className="password-toggle" aria-label={passwordVisible ? 'Hide password' : 'Show password'} aria-pressed={passwordVisible} onClick={() => setPasswordVisible((visible) => !visible)}>{passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label>}
+            {(mode === 'register' || mode === 'reset') && <label>Confirm password<div className="password-input-wrap"><input type={confirmPasswordVisible ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword)} /><button type="button" className="password-toggle" aria-label={confirmPasswordVisible ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={confirmPasswordVisible} onClick={() => setConfirmPasswordVisible((visible) => !visible)}>{confirmPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>{confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword) && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
             {mode === 'login' && <button type="button" className="auth-link" onClick={() => { setMode('forgot'); setError(''); setNotice('') }}>Forgot password?</button>}
             {notice && <div className="auth-notice" role="status">{notice}{resetUrl && <p className="auth-reset-link"><a href={resetUrl}>Open local password reset link</a></p>}</div>}
             {error && <div className="auth-error" role="alert">{error}</div>}
@@ -890,7 +894,9 @@ function BoardCanvas({
 
   async function shareBoard() {
     try {
-      const boardUrl = new URL(window.location.href)
+      // Build a clean, canonical board URL instead of carrying over stale
+      // invite/reset query parameters from the current browser location.
+      const boardUrl = new URL('/', window.location.origin)
       boardUrl.searchParams.set('board', board.id)
       await navigator.clipboard.writeText(boardUrl.toString())
       setCopied(true)
