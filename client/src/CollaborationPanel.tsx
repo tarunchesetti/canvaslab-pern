@@ -25,6 +25,9 @@ type Item = {
   board_title?: string
   rationale?: string
   source_element_id?: string | null
+  type?: string
+  label?: string
+  category?: string
 }
 type ElementSummary = { id: string; title: string }
 const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
