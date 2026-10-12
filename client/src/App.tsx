@@ -24,7 +24,6 @@ import {
   MousePointer2,
   Plus,
   Search,
-  Share2,
   StickyNote,
   Type,
   Users,
@@ -684,7 +683,6 @@ function BoardCanvas({
   const canEdit = board.role !== 'viewer'
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([])
   const [activeTool, setActiveTool] = useState('select')
-  const [copied, setCopied] = useState(false)
   const [showBoardMenu, setShowBoardMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const searchInput = useRef<HTMLInputElement>(null)
@@ -892,20 +890,6 @@ function BoardCanvas({
     setActiveTool('select')
   }
 
-  async function shareBoard() {
-    try {
-      // Build a clean, canonical board URL instead of carrying over stale
-      // invite/reset query parameters from the current browser location.
-      const boardUrl = new URL('/', window.location.origin)
-      boardUrl.searchParams.set('board', board.id)
-      await navigator.clipboard.writeText(boardUrl.toString())
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1800)
-    } catch {
-      setCopied(false)
-    }
-  }
-
   function searchCanvas(query: string) {
     setSearchQuery(query)
     const normalizedQuery = query.trim().toLowerCase()
@@ -951,7 +935,6 @@ function BoardCanvas({
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
             <button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> People</button>
-            <button className="button button-dark" title="Copy the board URL; use People to grant access" aria-label="Copy board URL. Use People to grant access." onClick={shareBoard}><Share2 size={15} /> {copied ? 'Board link copied' : 'Share board link'}</button>
           </div>
         </header>
 
