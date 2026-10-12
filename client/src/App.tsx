@@ -1117,11 +1117,11 @@ function BoardCanvas({
 
       <section className="workspace" id="board">
         <header className="topbar">
-          <a className="mobile-brand" href="#board" aria-label="CanvasLab home"><span className="brand-mark"><Command size={17} strokeWidth={2.5} /></span><span>canvas<span className="brand-light">lab</span></span></a><div className="breadcrumbs"><span>Boards</span><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
+          <a className="mobile-brand" href="#board" aria-label="CanvasLab home"><span className="brand-mark"><Command size={17} strokeWidth={2.5} /></span><span>canvas<span className="brand-light">lab</span></span></a><div className="breadcrumbs"><button className="header-all-boards" onClick={() => onShowBoards('all')}><span className="nav-glyph">▦</span><span>All boards</span></button><span className="breadcrumb-slash">/</span><strong>{board.title}</strong><span className="private-tag">{board.role.toUpperCase()}</span></div>
           <div className="topbar-actions">
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
-            <button className="button button-outline mobile-create-board" onClick={onCreateBoard}><Plus size={16} /><span>New board</span></button>
+            <button className="button button-dark header-create-board" onClick={onCreateBoard}><Plus size={16} /><span>New board</span></button>
 <button className="button button-outline collab-open-button" onClick={() => setShowCollaborationPanel(true)} title="Comments, tasks, voting, and activity"><Activity size={15} /><span>Collab</span></button><button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> Share</button>
             <button className="button button-outline mobile-signout" onClick={onLogout} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
           </div>
@@ -1130,7 +1130,6 @@ function BoardCanvas({
           <button className="mobile-workspace-link" onClick={() => onShowBoards('all')}><span className="nav-glyph">▦</span><span>All boards</span><span className="nav-count">{boards.length}</span></button>
           <button className="mobile-workspace-link" onClick={() => onShowBoards('shared')}><Users size={15} /><span>Shared with me</span></button>
           <button className="mobile-workspace-link" onClick={() => onShowBoards('owned')}><Command size={15} /><span>Your boards</span></button>
-          <span className="mobile-workspace-divider" />
         </nav>
         {mobileNavOpen && <div className="mobile-header-menu">
           <div className="mobile-menu-account"><span className="workspace-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{user.displayName}</strong><small>{user.email}</small></span></div>
@@ -1153,7 +1152,6 @@ function BoardCanvas({
             <button className={`tool-button ${activeTool === 'brush' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Brush: thicker strokes" aria-label="Brush tool" onClick={() => setActiveTool('brush')}><Paintbrush size={17} /></button>
             <button className={`tool-button ${activeTool === 'highlighter' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Highlighter: translucent strokes" aria-label="Highlighter tool" onClick={() => setActiveTool('highlighter')}><Highlighter size={17} /></button>
             <button className={`tool-button ${activeTool === 'eraser' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Eraser: click a drawing stroke to remove it" aria-label="Eraser tool" onClick={() => setActiveTool('eraser')}><Eraser size={17} /></button>
-            <span className="tool-divider" />
             <button className="tool-button" disabled={!canInteract} title="Add sticky note" aria-label="Add sticky note" onClick={() => { setActiveTool('note'); addNode('note') }}><StickyNote size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add code block" aria-label="Add code block" onClick={() => { setActiveTool('code'); addNode('code') }}><Code2 size={17} /></button>
@@ -1161,7 +1159,6 @@ function BoardCanvas({
             <button className="tool-button" disabled={!canInteract} title="Add circle" aria-label="Add circle" onClick={() => addNode('shape', 'circle')}><Circle size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add diamond" aria-label="Add diamond" onClick={() => addNode('shape', 'diamond')}><Diamond size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add checklist" aria-label="Add checklist" onClick={() => { setActiveTool('checklist'); addNode('checklist') }}><ListChecks size={17} /></button>
-            <span className="tool-divider" />
             <button className="template-tool-button" disabled={!canInteract} title="Browse templates" aria-label="Browse templates" onClick={() => setShowTemplateGallery(true)}><Copy size={15} /><span>Templates</span></button>
           </div>
           {['pen', 'brush', 'highlighter'].includes(activeTool) && canInteract && <div className="drawing-options" aria-label="Drawing options">
@@ -1185,8 +1182,6 @@ function BoardCanvas({
             edges={[]}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
-            fitView
-            fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
             minZoom={0.35}
             maxZoom={1.4}
             nodesDraggable={canInteract && !['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool)}
@@ -1197,7 +1192,7 @@ function BoardCanvas({
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#d8d9d5" />
             <DrawingSurface activeTool={canInteract ? activeTool : 'select'} color={drawingColor} strokeWidth={drawingWidth} onFinish={finishDrawing} onEraseAt={(point) => setNodes((current) => current.filter((node) => { if (node.type !== 'drawing') return true; const width = node.data.width ?? 1; const height = node.data.height ?? 1; return point.x < node.position.x - 14 || point.x > node.position.x + width + 14 || point.y < node.position.y - 14 || point.y > node.position.y + height + 14 }))} />
-            <Controls position="bottom-right" showInteractive={false} />
+            <Controls position="bottom-right" showInteractive={false} showFitView={false} />
             <CollaborationCursorLayer providerRef={providerRef} wrapperRef={canvasWrapperRef} cursors={remoteCursors} />
           </ReactFlow>
           <div className="canvas-hint"><MousePointer2 size={13} /> Drag anything to make room for a new idea</div>
