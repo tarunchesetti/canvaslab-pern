@@ -21,7 +21,6 @@ import {
   Code2,
   Command,
   LogOut,
-  FilePlus2,
   Italic,
   ListChecks,
   Pencil,
