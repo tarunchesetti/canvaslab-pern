@@ -174,7 +174,7 @@ function CodeCard({ id, data, selected }: NodeProps<CanvasNode>) {
 function ShapeCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
   const shape = data.shape ?? 'rectangle'
-  return <div className={\`shape-card shape-\${shape}\`} style={{ width: data.width ?? 180, height: data.height ?? 110, backgroundColor: data.backgroundColor ?? '#e4ebff', color: data.textColor ?? '#27314a', fontSize: data.fontSize ?? 14, fontWeight: data.bold ? 700 : 400, fontStyle: data.italic ? 'italic' : 'normal' }}>
+  return <div className={`shape-card shape-${shape}`} style={{ width: data.width ?? 180, height: data.height ?? 110, backgroundColor: data.backgroundColor ?? '#e4ebff', color: data.textColor ?? '#27314a', fontSize: data.fontSize ?? 14, fontWeight: data.bold ? 700 : 400, fontStyle: data.italic ? 'italic' : 'normal' }}>
     <NodeResizer isVisible={Boolean(selected && !data.readOnly)} minWidth={90} minHeight={70} onResizeEnd={(_event, params) => updateNodeData(id, { width: params.width, height: params.height })} />
     <textarea aria-label="Shape label" className="shape-label nodrag" value={data.text} readOnly={data.readOnly} onChange={(event) => updateNodeData(id, { text: event.target.value })} onPointerDown={(event) => event.stopPropagation()} />
   </div>
@@ -195,8 +195,8 @@ function ChecklistCard({ id, data, selected }: NodeProps<CanvasNode>) {
       const checked = /^\s*\[x\]\s*/i.test(item)
       const label = item.replace(/^\s*\[[ x]\]\s*/i, '')
       return <label className={checked ? 'checklist-item is-checked' : 'checklist-item'} key={index}>
-        <input type="checkbox" checked={checked} disabled={data.readOnly} onChange={() => updateItem(index, checked ? label : \`[x] \${label}\`)} />
-        <input className="checklist-item-text" aria-label={\`Checklist item \${index + 1}\`} value={label} readOnly={data.readOnly} placeholder="Add a task…" onChange={(event) => updateItem(index, \`\${checked ? '[x] ' : '[ ] '}\${event.target.value}\`)} onPointerDown={(event) => event.stopPropagation()} />
+        <input type="checkbox" checked={checked} disabled={data.readOnly} onChange={() => updateItem(index, checked ? label : `[x] ${label}`)} />
+        <input className="checklist-item-text" aria-label={`Checklist item ${index + 1}`} value={label} readOnly={data.readOnly} placeholder="Add a task…" onChange={(event) => updateItem(index, `${checked ? '[x] ' : '[ ] '}${event.target.value}`)} onPointerDown={(event) => event.stopPropagation()} />
       </label>
     })}</div>
     {!data.readOnly && <button type="button" className="checklist-add nodrag" onClick={() => updateNodeData(id, { text: [...items, '[ ] New task'].join('\n') })}>+ Add item</button>}
