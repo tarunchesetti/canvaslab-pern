@@ -24,6 +24,10 @@ import {
   FilePlus2,
   Italic,
   ListChecks,
+  Pencil,
+  Paintbrush,
+  Highlighter,
+  Eraser,
   LoaderCircle,
   MousePointer2,
   Plus,
@@ -55,8 +59,12 @@ type CanvasNode = Node<{
   bold?: boolean
   italic?: boolean
   shape?: 'rectangle' | 'circle' | 'diamond'
+  path?: string
+  strokeColor?: string
+  strokeWidth?: number
+  strokeOpacity?: number
   readOnly?: boolean
-}, 'note' | 'code' | 'text' | 'shape' | 'checklist'>
+}, 'note' | 'code' | 'text' | 'shape' | 'checklist' | 'drawing'>
 
 type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasNodeSignature' | 'readNodesFromDocument' | 'syncNodesToDocument'>
 
@@ -180,6 +188,58 @@ function ShapeCard({ id, data, selected }: NodeProps<CanvasNode>) {
   </div>
 }
 
+function DrawingCard({ data }: NodeProps<CanvasNode>) {
+  const width = Math.max(1, data.width ?? 1)
+  const height = Math.max(1, data.height ?? 1)
+  return <svg className="drawing-card" width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-label="Freehand drawing">
+    <path d={data.path ?? ''} fill="none" stroke={data.strokeColor ?? '#26352a'} strokeWidth={data.strokeWidth ?? 3} strokeOpacity={data.strokeOpacity ?? 1} strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+}
+
+function DrawingSurface({ activeTool, color, strokeWidth, onFinish }: {
+  activeTool: string
+  color: string
+  strokeWidth: number
+  onFinish: (points: { x: number; y: number }[], tool: string, color: string, strokeWidth: number) => void
+}) {
+  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow<CanvasNode>()
+  const wrapperRef = useRef<SVGSVGElement | null>(null)
+  const [points, setPoints] = useState<{ x: number; y: number }[]>([])
+  const drawing = activeTool === 'pen' || activeTool === 'brush' || activeTool === 'highlighter'
+  const bounds = wrapperRef.current?.getBoundingClientRect()
+  const previewPoints = points.map((point) => {
+    const screen = flowToScreenPosition(point)
+    return { x: screen.x - (bounds?.left ?? 0), y: screen.y - (bounds?.top ?? 0) }
+  })
+  const previewPath = previewPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+
+  function pointFromEvent(event: React.PointerEvent<SVGSVGElement>) {
+    return screenToFlowPosition({ x: event.clientX, y: event.clientY })
+  }
+  function handlePointerDown(event: React.PointerEvent<SVGSVGElement>) {
+    if (!drawing) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setPoints([pointFromEvent(event)])
+  }
+  function handlePointerMove(event: React.PointerEvent<SVGSVGElement>) {
+    if (points.length === 0 || !drawing) return
+    const point = pointFromEvent(event)
+    setPoints((current) => [...current, point])
+  }
+  function handlePointerUp(event: React.PointerEvent<SVGSVGElement>) {
+    if (points.length === 0) return
+    const finished = [...points, pointFromEvent(event)]
+    onFinish(finished, activeTool, color, strokeWidth)
+    setPoints([])
+  }
+
+  return <svg ref={wrapperRef} className={drawing ? 'drawing-surface drawing-active' : 'drawing-surface'} aria-label="Freehand drawing surface"
+    onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={() => setPoints([])}>
+    {previewPath && <path d={previewPath} fill="none" stroke={color} strokeWidth={strokeWidth * (activeTool === 'brush' ? 1.6 : 1)} strokeOpacity={activeTool === 'highlighter' ? 0.28 : 1} strokeLinecap="round" strokeLinejoin="round" />}
+  </svg>
+}
+
 function ChecklistCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
   const items = data.text.split('\n')
@@ -203,7 +263,7 @@ function ChecklistCard({ id, data, selected }: NodeProps<CanvasNode>) {
   </article>
 }
 
-const nodeTypes = { note: NoteCard, code: CodeCard, text: TextCard, shape: ShapeCard, checklist: ChecklistCard }
+const nodeTypes = { note: NoteCard, code: CodeCard, text: TextCard, shape: ShapeCard, checklist: ChecklistCard, drawing: DrawingCard }
 
 function toCanvasNodes(nodes: CanvasDocumentNode[], readOnly: boolean): CanvasNode[] {
   return nodes.map((node) => ({
@@ -728,6 +788,8 @@ function BoardCanvas({
   const canEdit = board.role !== 'viewer'
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([])
   const [activeTool, setActiveTool] = useState('select')
+  const [drawingColor, setDrawingColor] = useState('#26352a')
+  const [drawingWidth, setDrawingWidth] = useState(3)
   const [showBoardMenu, setShowBoardMenu] = useState(false)
   const selectedNode = nodes.find((node) => node.selected && !node.data.readOnly)
   function updateSelectedNode(patch: Partial<CanvasNode['data']>) {
@@ -937,6 +999,41 @@ function BoardCanvas({
     setActiveTool('select')
   }
 
+  function finishDrawing(points: { x: number; y: number }[], tool: string, color: string, width: number) {
+    if (!canInteract || points.length < 2) return
+    const padding = Math.max(3, width * 2)
+    const minX = Math.min(...points.map((point) => point.x)) - padding
+    const minY = Math.min(...points.map((point) => point.y)) - padding
+    const maxX = Math.max(...points.map((point) => point.x)) + padding
+    const maxY = Math.max(...points.map((point) => point.y)) + padding
+    const nodeWidth = Math.max(2, maxX - minX)
+    const nodeHeight = Math.max(2, maxY - minY)
+    const path = points.map((point, index) => {
+      const x = point.x - minX
+      const y = point.y - minY
+      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
+    }).join(' ')
+    const strokeWidth = width * (tool === 'brush' ? 1.6 : tool === 'highlighter' ? 5 : 1)
+    const newDrawing: CanvasNode = {
+      id: `drawing-${crypto.randomUUID()}`,
+      type: 'drawing',
+      position: { x: minX, y: minY },
+      draggable: true,
+      selectable: true,
+      data: {
+        title: tool === 'highlighter' ? 'Highlighter stroke' : 'Drawing stroke',
+        text: '',
+        path,
+        strokeColor: color,
+        strokeWidth,
+        strokeOpacity: tool === 'highlighter' ? 0.28 : 1,
+        width: nodeWidth,
+        height: nodeHeight,
+      },
+    }
+    setNodes((current) => [...current, newDrawing])
+  }
+
   function searchCanvas(query: string) {
     setSearchQuery(query)
     const normalizedQuery = query.trim().toLowerCase()
@@ -991,6 +1088,10 @@ function BoardCanvas({
         <div className="board-canvas-wrap" ref={canvasWrapperRef}>
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
+            <button className={`tool-button ${activeTool === 'pen' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Pen: draw freehand" aria-label="Pen tool" onClick={() => setActiveTool('pen')}><Pencil size={17} /></button>
+            <button className={`tool-button ${activeTool === 'brush' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Brush: thicker strokes" aria-label="Brush tool" onClick={() => setActiveTool('brush')}><Paintbrush size={17} /></button>
+            <button className={`tool-button ${activeTool === 'highlighter' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Highlighter: translucent strokes" aria-label="Highlighter tool" onClick={() => setActiveTool('highlighter')}><Highlighter size={17} /></button>
+            <button className={`tool-button ${activeTool === 'eraser' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Eraser: click a drawing stroke to remove it" aria-label="Eraser tool" onClick={() => setActiveTool('eraser')}><Eraser size={17} /></button>
             <span className="tool-divider" />
             <button className="tool-button" disabled={!canInteract} title="Add sticky note" aria-label="Add sticky note" onClick={() => { setActiveTool('note'); addNode('note') }}><StickyNote size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add text" aria-label="Add text" onClick={() => { setActiveTool('text'); addNode('text') }}><Type size={17} /></button>
@@ -998,6 +1099,10 @@ function BoardCanvas({
             <button className="tool-button" disabled={!canInteract} title="Add shape" aria-label="Add shape" onClick={() => { setActiveTool('shape'); addNode('shape') }}><Square size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add checklist" aria-label="Add checklist" onClick={() => { setActiveTool('checklist'); addNode('checklist') }}><ListChecks size={17} /></button>
           </div>
+          {['pen', 'brush', 'highlighter'].includes(activeTool) && canInteract && <div className="drawing-options" aria-label="Drawing options">
+            <label>Color <input aria-label="Drawing color" type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} /></label>
+            <label>Thickness <input aria-label="Drawing thickness" type="range" min="1" max="12" value={drawingWidth} onChange={(event) => setDrawingWidth(Number(event.target.value))} /><span>{drawingWidth}px</span></label>
+          </div>}
           {selectedNode && canInteract && <div className="selection-toolbar" aria-label="Selected object formatting">
             <label title="Background color"><span>Fill</span><input aria-label="Fill color" type="color" value={selectedNode.data.backgroundColor ?? (selectedNode.type === 'note' ? '#fff1b9' : '#ffffff')} onChange={(event) => updateSelectedNode({ backgroundColor: event.target.value, tone: undefined })} /></label>
             <label title="Text color"><span>Text</span><input aria-label="Text color" type="color" value={selectedNode.data.textColor ?? '#343830'} onChange={(event) => updateSelectedNode({ textColor: event.target.value })} /></label>
@@ -1020,12 +1125,14 @@ function BoardCanvas({
             fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
             minZoom={0.35}
             maxZoom={1.4}
-            nodesDraggable={canInteract}
+            nodesDraggable={canInteract && !['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool)}
             nodesConnectable={false}
+            onNodeClick={(_event, node) => { if (activeTool === 'eraser' && canInteract && node.type === 'drawing') setNodes((current) => current.filter((item) => item.id !== node.id)) }}
             elementsSelectable
             deleteKeyCode={canInteract ? ['Backspace', 'Delete'] : null}
           >
             <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#d8d9d5" />
+            <DrawingSurface activeTool={canInteract ? activeTool : 'select'} color={drawingColor} strokeWidth={drawingWidth} onFinish={finishDrawing} />
             <Controls position="bottom-right" showInteractive={false} />
             <CollaborationCursorLayer providerRef={providerRef} wrapperRef={canvasWrapperRef} cursors={remoteCursors} />
           </ReactFlow>
