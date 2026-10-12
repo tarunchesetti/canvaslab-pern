@@ -420,7 +420,7 @@ function BoardWorkspace({ user, onLogout }: { user: User; onLogout: () => void }
   const [showMembers, setShowMembers] = useState(false)
   const [creating, setCreating] = useState(false)
   const [showBoardList, setShowBoardList] = useState(false)
-  const [boardListFilter, setBoardListFilter] = useState<'all' | 'shared'>('all')
+  const [boardListFilter, setBoardListFilter] = useState<'all' | 'shared' | 'owned'>('all')
   const [boardAction, setBoardAction] = useState<'rename' | 'delete' | null>(null)
   const [updatingBoard, setUpdatingBoard] = useState(false)
 
@@ -600,14 +600,14 @@ function BoardListDialog({
   onCreate,
 }: {
   boards: Board[]
-  filter: 'all' | 'shared'
+  filter: 'all' | 'shared' | 'owned'
   onClose: () => void
   onSelect: (boardId: string) => void
   onCreate: () => void
 }) {
   const [query, setQuery] = useState('')
   const visibleBoards = boards.filter((board) => {
-    const matchesFilter = filter === 'all' || board.role !== 'owner'
+    const matchesFilter = filter === 'all' || (filter === 'shared' ? board.role !== 'owner' : board.role === 'owner')
     return matchesFilter && board.title.toLowerCase().includes(query.trim().toLowerCase())
   })
 
@@ -615,7 +615,7 @@ function BoardListDialog({
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
       <section className="create-dialog board-list-dialog" role="dialog" aria-modal="true" aria-labelledby="board-list-title">
         <button className="dialog-close" aria-label="Close" onClick={onClose}>×</button>
-        <p className="auth-kicker">WORKSPACE</p><h2 id="board-list-title">{filter === 'all' ? 'All boards' : 'Shared with me'}</h2>
+        <p className="auth-kicker">WORKSPACE</p><h2 id="board-list-title">{filter === 'all' ? 'All boards' : filter === 'shared' ? 'Shared with me' : 'Your boards'}</h2>
         <label className="board-list-search"><Search size={15} /><input aria-label="Search boards" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by board name" /></label>
         {visibleBoards.length > 0
           ? <div className="board-list-results">{visibleBoards.map((board, index) => <button key={board.id} className="board-list-row" onClick={() => onSelect(board.id)}><span className={`board-color ${['color-lilac', 'color-sky', 'color-peach', 'color-green'][index % 4]}`} /><span className="board-list-name">{board.title}<small>Updated {new Date(board.updated_at).toLocaleDateString()}</small></span><span className="board-list-role">{board.role}</span><ArrowRight size={15} /></button>)}</div>
@@ -787,7 +787,7 @@ function BoardCanvas({
   onSelectBoard: (boardId: string) => void
   onCreateBoard: () => void
   onManageMembers: () => void
-  onShowBoards: (filter: 'all' | 'shared') => void
+  onShowBoards: (filter: 'all' | 'shared' | 'owned') => void
   onEditBoard: (mode: 'rename' | 'delete') => void
   onLogout: () => void
 }) {
@@ -1091,6 +1091,7 @@ function BoardCanvas({
         <nav className="mobile-workspace-nav" aria-label="Workspace navigation">
           <button className="mobile-workspace-link" onClick={() => onShowBoards('all')}><span className="nav-glyph">▦</span><span>All boards</span><span className="nav-count">{boards.length}</span></button>
           <button className="mobile-workspace-link" onClick={() => onShowBoards('shared')}><Users size={15} /><span>Shared with me</span></button>
+          <button className="mobile-workspace-link" onClick={() => onShowBoards('owned')}><Command size={15} /><span>Your boards</span></button>
           <span className="mobile-workspace-divider" />
           <span className="mobile-workspace-label">Your boards</span>
           {boards.slice(0, 8).map((item, index) => <button key={item.id} className={`mobile-workspace-board ${item.id === board.id ? 'mobile-workspace-board-active' : ''}`} onClick={() => onSelectBoard(item.id)}><span className={`board-color ${['color-lilac', 'color-sky', 'color-peach', 'color-green'][index % 4]}`} /><span>{item.title}</span></button>)}
