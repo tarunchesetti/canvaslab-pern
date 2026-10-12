@@ -88,3 +88,17 @@ CREATE TABLE board_templates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX board_templates_owner_created_idx ON board_templates (owner_id, created_at DESC);
+
+CREATE TABLE board_decisions (
+  id UUID PRIMARY KEY,
+  board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+  title VARCHAR(240) NOT NULL CHECK (LENGTH(BTRIM(title)) > 0),
+  rationale TEXT NOT NULL DEFAULT '',
+  status VARCHAR(16) NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'accepted', 'rejected', 'superseded')),
+  owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  source_element_id VARCHAR(180),
+  created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX board_decisions_board_updated_idx ON board_decisions (board_id, updated_at DESC);
