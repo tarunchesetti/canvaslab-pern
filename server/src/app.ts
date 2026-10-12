@@ -7,6 +7,7 @@ import type { Pool } from 'pg'
 import type { Environment } from './config.js'
 import { createAuthRouter } from './routes/auth.js'
 import { createBoardsRouter } from './routes/boards.js'
+import { createCollaborationRouter } from './routes/collaboration.js'
 
 export function createApp(pool: Pool, configuration: Environment) {
   const app = express()
@@ -41,6 +42,7 @@ export function createApp(pool: Pool, configuration: Environment) {
   })
   app.use('/api/auth', createAuthRouter(pool, configuration.SESSION_SECRET, configuration))
   app.use('/api/boards', createBoardsRouter(pool, configuration))
+  app.use('/api', createCollaborationRouter(pool))
   app.use((_request, response) => response.status(404).json({ error: 'Not found' }))
 
   const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
