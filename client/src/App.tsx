@@ -816,8 +816,6 @@ function BoardCanvas({
   function deleteSelectedNode() {
     if (selectedNode) setNodes((current) => current.filter((node) => node.id !== selectedNode.id))
   }
-  const [searchQuery, setSearchQuery] = useState('')
-  const searchInput = useRef<HTMLInputElement>(null)
   const [collaborationStatus, setCollaborationStatus] = useState<'connecting' | 'connected' | 'offline'>('connecting')
   const [collaborationReady, setCollaborationReady] = useState(false)
   const [collaborationError, setCollaborationError] = useState('')
@@ -960,17 +958,6 @@ function BoardCanvas({
     bridge.syncNodesToDocument(document, sharedNodes, nodes)
   }, [board.id, canEdit, collaborationReady, nodes])
 
-  useEffect(() => {
-    function handleSearchShortcut(event: KeyboardEvent) {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault()
-        searchInput.current?.focus()
-      }
-    }
-    window.addEventListener('keydown', handleSearchShortcut)
-    return () => window.removeEventListener('keydown', handleSearchShortcut)
-  }, [])
-
   function addNode(type: 'note' | 'code' | 'text' | 'shape' | 'checklist', shape: 'rectangle' | 'circle' | 'diamond' = 'rectangle') {
     const id = `node-${crypto.randomUUID()}`
     const size = type === 'code' ? { width: 290, height: 190 } : type === 'text' ? { width: 230, height: 70 } : type === 'shape' ? { width: 180, height: 110 } : type === 'checklist' ? { width: 250, height: 170 } : { width: 240, height: 170 }
@@ -1102,15 +1089,6 @@ function BoardCanvas({
     setActiveTool('select')
   }
 
-  function searchCanvas(query: string) {
-    setSearchQuery(query)
-    const normalizedQuery = query.trim().toLowerCase()
-    setNodes((currentNodes) => currentNodes.map((node) => ({
-      ...node,
-      selected: Boolean(normalizedQuery) && `${node.data.title} ${node.data.text}`.toLowerCase().includes(normalizedQuery),
-    })))
-  }
-
   return (
     <main className={presentationMode ? "app-shell presentation-mode" : "app-shell"}>
       <aside className={`sidebar ${mobileNavOpen ? "mobile-nav-open" : ""}`}>
@@ -1202,7 +1180,6 @@ function BoardCanvas({
             <button type="button" className="format-button format-danger" aria-label="Delete selected object" title="Delete" onClick={deleteSelectedNode}><Trash2 size={15} /></button>
           </div>}
 
-          <label className="canvas-search"><Search size={15} /><input ref={searchInput} aria-label="Find on canvas" placeholder="Find on canvas" value={searchQuery} onChange={(event) => searchCanvas(event.target.value)} /><kbd>Ctrl K</kbd></label>
           <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
           <ReactFlow
             nodes={nodes}
