@@ -822,6 +822,7 @@ function BoardCanvas({
   const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([])
   const providerRef = useRef<HocuspocusProvider | null>(null)
   const canvasWrapperRef = useRef<HTMLDivElement | null>(null)
+  const screenToFlowPositionRef = useRef<((position: { x: number; y: number }) => { x: number; y: number }) | null>(null)
   const documentRef = useRef<Yjs.Doc | null>(null)
   const sharedNodesRef = useRef<Yjs.Map<Yjs.Map<unknown>> | null>(null)
   const collaborationBridgeRef = useRef<CollaborationBridge | null>(null)
@@ -960,26 +961,34 @@ function BoardCanvas({
     const id = `node-${crypto.randomUUID()}`
     const size = type === 'code' ? { width: 290, height: 190 } : type === 'text' ? { width: 230, height: 70 } : type === 'shape' ? { width: 180, height: 110 } : type === 'checklist' ? { width: 250, height: 170 } : { width: 240, height: 170 }
     let position = { x: 110, y: 115 }
+    const canvasBounds = canvasWrapperRef.current?.getBoundingClientRect()
+    if (type === 'shape' && canvasBounds && screenToFlowPositionRef.current) {
+      const center = screenToFlowPositionRef.current({
+        x: canvasBounds.left + canvasBounds.width / 2,
+        y: canvasBounds.top + canvasBounds.height / 2,
+      })
+      position = { x: center.x - size.width / 2, y: center.y - size.height / 2 }
+    } else {
+      for (let row = 0; row < 20; row += 1) {
+        let foundPosition = false
+        for (let column = 0; column < 6; column += 1) {
+          const candidate = { x: 110 + column * 310, y: 115 + row * 245 }
+          const overlapsNode = nodes.some((node) => {
+            const nodeSize = node.type === 'code' ? { width: 290, height: 190 } : node.type === 'text' ? { width: 230, height: 70 } : node.type === 'shape' ? { width: node.data.width ?? 180, height: node.data.height ?? 110 } : node.type === 'checklist' ? { width: node.data.width ?? 250, height: node.data.height ?? 170 } : { width: 240, height: 170 }
+            return candidate.x < node.position.x + nodeSize.width + 28
+              && candidate.x + size.width + 28 > node.position.x
+              && candidate.y < node.position.y + nodeSize.height + 28
+              && candidate.y + size.height + 28 > node.position.y
+          })
 
-    for (let row = 0; row < 20; row += 1) {
-      let foundPosition = false
-      for (let column = 0; column < 6; column += 1) {
-        const candidate = { x: 110 + column * 310, y: 115 + row * 245 }
-        const overlapsNode = nodes.some((node) => {
-          const nodeSize = node.type === 'code' ? { width: 290, height: 190 } : node.type === 'text' ? { width: 230, height: 70 } : node.type === 'shape' ? { width: node.data.width ?? 180, height: node.data.height ?? 110 } : node.type === 'checklist' ? { width: node.data.width ?? 250, height: node.data.height ?? 170 } : { width: 240, height: 170 }
-          return candidate.x < node.position.x + nodeSize.width + 28
-            && candidate.x + size.width + 28 > node.position.x
-            && candidate.y < node.position.y + nodeSize.height + 28
-            && candidate.y + size.height + 28 > node.position.y
-        })
-
-        if (!overlapsNode) {
-          position = candidate
-          foundPosition = true
-          break
+          if (!overlapsNode) {
+            position = candidate
+            foundPosition = true
+            break
+          }
         }
+        if (foundPosition) break
       }
-      if (foundPosition) break
     }
 
     const newNode: CanvasNode = type === 'note'
@@ -992,7 +1001,7 @@ function BoardCanvas({
             ? { id, type, position, data: { title: 'Checklist', text: '[ ] First task\n[ ] Second task', backgroundColor: '#ffffff', width: size.width, height: size.height } }
             : { id, type, position, data: { title: 'untitled.ts', text: '// Start sketching here', language: 'typescript', width: size.width, height: size.height } }
 
-    setNodes((currentNodes) => [...currentNodes, newNode])
+    setNodes((currentNodes) => [...currentNodes.map((node) => ({ ...node, selected: false })), { ...newNode, selected: type === 'shape' }])
     setActiveTool('select')
   }
 
@@ -1177,6 +1186,7 @@ function BoardCanvas({
 
           <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
           <ReactFlow
+            onInit={(instance) => { screenToFlowPositionRef.current = instance.screenToFlowPosition }}
             nodes={nodes}
             edges={[]}
             nodeTypes={nodeTypes}
