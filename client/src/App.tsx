@@ -1107,6 +1107,7 @@ function BoardCanvas({
           <span className="workspace-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span>
           <span className="workspace-copy"><strong>{user.displayName}</strong><small>{user.email}</small></span>
         </div>
+        <button className="button button-dark sidebar-create-board" onClick={onCreateBoard}><Plus size={16} /><span>New board</span></button>
         <div className="sidebar-label">WORKSPACE</div>
         <button className="nav-item nav-active" onClick={() => onShowBoards('all')}><span className="nav-glyph grid-glyph">▦</span> All boards <span className="nav-count">{boards.length}</span></button>
         <button className="nav-item" onClick={() => onShowBoards('shared')}><Users size={16} /> Shared with me</button>
@@ -1129,7 +1130,6 @@ function BoardCanvas({
           <div className="topbar-actions">
             {collaborators.length > 0 && <div className="presence-stack" aria-label={`${collaborators.length} collaborators online`}>{collaborators.slice(0, 4).map((collaborator) => <span key={collaborator.id} className="presence-avatar" title={collaborator.name} style={{ backgroundColor: collaborator.color }}>{collaborator.name.slice(0, 1).toUpperCase()}</span>)}</div>}
             <span className="connection-badge">{collaborationStatus === 'connected' ? 'LIVE SYNC' : collaborationStatus === 'offline' ? 'OFFLINE' : 'CONNECTING'}</span>
-            <button className="button button-dark header-create-board" onClick={onCreateBoard}><Plus size={16} /><span>New board</span></button>
 <button className="button button-outline collab-open-button" onClick={() => setShowCollaborationPanel(true)} title="Comments, tasks, voting, and activity"><Activity size={15} /><span>Collab</span></button><button className="button button-outline invite-button" onClick={onManageMembers}><Users size={15} /> Share</button>
             <button className="button button-outline mobile-signout" onClick={onLogout} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
           </div>
@@ -1143,6 +1143,7 @@ function BoardCanvas({
           <div className="mobile-menu-account"><span className="workspace-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{user.displayName}</strong><small>{user.email}</small></span></div>
           <button onClick={() => { onShowBoards('all'); setMobileNavOpen(false) }}><span className="nav-glyph">▦</span><span>All boards</span><span className="nav-count">{boards.length}</span></button>
           <button onClick={() => { onShowBoards('shared'); setMobileNavOpen(false) }}><Users size={16} /><span>Shared with me</span></button>
+          <button className="mobile-menu-create-board" onClick={() => { setMobileNavOpen(false); onCreateBoard() }}><Plus size={16} /><span>New board</span></button>
           <div className="mobile-menu-label">YOUR BOARDS <button aria-label="Create board" onClick={() => { setMobileNavOpen(false); onCreateBoard() }}><Plus size={15} /></button></div>
           {boards.slice(0, 8).map((item, index) => <button key={item.id} className={item.id === board.id ? 'mobile-board-current' : ''} onClick={() => { onSelectBoard(item.id); setMobileNavOpen(false) }}><span className={`board-color ${['color-lilac', 'color-sky', 'color-peach', 'color-green'][index % 4]}`} /><span>{item.title}</span></button>)}
           <button className="mobile-menu-signout" onClick={onLogout}><LogOut size={16} /><span>Sign out</span></button>
