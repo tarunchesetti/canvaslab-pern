@@ -878,3 +878,31 @@
     font-size:12px;
   }
 }
+
+
+/* Keep the active collaborator avatars visible in the mobile header, as on desktop. */
+@media (max-width:760px) {
+  .topbar-actions .presence-stack {
+    display:flex;
+    flex:0 1 auto;
+    min-width:0;
+    padding-left:3px;
+    margin-right:1px;
+  }
+  .topbar-actions .presence-avatar {
+    width:23px;
+    height:23px;
+    min-width:23px;
+    margin-left:-5px;
+    border-width:2px;
+    font-size:8px;
+  }
+}
+@media (max-width:390px) {
+  .topbar-actions .presence-avatar {
+    width:20px;
+    height:20px;
+    min-width:20px;
+    font-size:7px;
+  }
+}
