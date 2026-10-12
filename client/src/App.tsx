@@ -1090,6 +1090,13 @@ function BoardCanvas({
             <button className="button button-outline mobile-signout" onClick={onLogout} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
           </div>
         </header>
+        <nav className="mobile-workspace-nav" aria-label="Workspace navigation">
+          <button className="mobile-workspace-link" onClick={() => onShowBoards('all')}><span className="nav-glyph">▦</span><span>All boards</span><span className="nav-count">{boards.length}</span></button>
+          <button className="mobile-workspace-link" onClick={() => onShowBoards('shared')}><Users size={15} /><span>Shared with me</span></button>
+          <span className="mobile-workspace-divider" />
+          <span className="mobile-workspace-label">Your boards</span>
+          {boards.slice(0, 8).map((item, index) => <button key={item.id} className={`mobile-workspace-board ${item.id === board.id ? 'mobile-workspace-board-active' : ''}`} onClick={() => onSelectBoard(item.id)}><span className={`board-color ${['color-lilac', 'color-sky', 'color-peach', 'color-green'][index % 4]}`} /><span>{item.title}</span></button>)}
+        </nav>
         {mobileNavOpen && <div className="mobile-header-menu">
           <div className="mobile-menu-account"><span className="workspace-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{user.displayName}</strong><small>{user.email}</small></span></div>
           <button onClick={() => { onShowBoards('all'); setMobileNavOpen(false) }}><span className="nav-glyph">▦</span><span>All boards</span><span className="nav-count">{boards.length}</span></button>
