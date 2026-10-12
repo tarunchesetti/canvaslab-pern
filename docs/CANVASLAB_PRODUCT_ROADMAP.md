@@ -13,13 +13,14 @@ CanvasLab helps remote teams turn shared ideas into decisions and decisions into
 Estimates assume a small development effort and usable existing board/auth/share flows. They are planning ranges, not delivery guarantees.
 
 ## First implementation slice
-Migration `003_collaboration_features.sql` introduces comments/replies, tasks, sessions/votes, snapshots, activity, notifications, and user-owned templates. `server/src/routes/collaboration.ts` exposes authenticated endpoints for these records. Board endpoints check membership; mutating endpoints check editor access where appropriate.
+Migration `003_collaboration_features.sql` introduces comments/replies, tasks, sessions/votes, snapshots, activity, notifications, user-owned templates, and decision records. `server/src/routes/collaboration.ts` exposes authenticated endpoints for these records. Board endpoints check membership; mutating endpoints check editor access where appropriate.
 
 ## API surface
 - `GET/POST /api/boards/:boardId/comments`
 - `PATCH /api/boards/:boardId/comments/:commentId` (resolve/unresolve)
 - `GET/POST /api/boards/:boardId/tasks`
 - `PATCH /api/boards/:boardId/tasks/:taskId`
+- `GET/POST /api/boards/:boardId/decisions`, `PATCH /api/boards/:boardId/decisions/:decisionId`
 - `GET/POST /api/boards/:boardId/sessions`
 - `POST /api/sessions/:sessionId/votes`
 - `POST /api/sessions/:sessionId/close`
@@ -36,7 +37,7 @@ Migration `003_collaboration_features.sql` introduces comments/replies, tasks, s
 - AI must be opt-in, scoped to selected content, provider-configured, and usage-limited.
 
 ## Not yet complete
-The new APIs are a backend foundation, not a claim that every roadmap item is finished. Frontend workflows, template-to-board creation, decision records, snapshot restore, AI, presentation follow mode, richer export, automated integration tests, and deployed verification remain follow-up work. Snapshot restore is intentionally withheld until active Hocuspocus documents can be safely reloaded or collaborators coordinated.
+The new APIs and collaboration drawer cover comments, tasks, voting, decision records, activity, snapshots, templates, and notifications. A local distraction-free presentation mode is also included. This is a foundation, not a claim that every roadmap item is finished. Frontend workflows, template-to-board creation, decision records, snapshot restore, AI, presentation follow mode, richer export, automated integration tests, and deployed verification remain follow-up work. Snapshot restore is intentionally withheld until active Hocuspocus documents can be safely reloaded or collaborators coordinated.
 
 ## Acceptance gates
 1. Concurrent edits preserve each other's changes.
