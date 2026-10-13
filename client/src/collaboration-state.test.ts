@@ -102,3 +102,95 @@ test('two collaborators converge after exchanging updates and reconnect from a s
     readNodesFromDocument(hostNodes),
   )
 })
+
+test('shape and drawing properties survive a saved-document restore', () => {
+  const source = new Y.Doc()
+  const sourceNodes = source.getMap<Y.Map<unknown>>('nodes')
+  syncNodesToDocument(source, sourceNodes, [
+    {
+      id: 'shape-1',
+      type: 'shape',
+      position: { x: 180, y: 240 },
+      data: {
+        title: 'Decision',
+        text: 'Continue?',
+        shape: 'diamond',
+        width: 210,
+        height: 130,
+        backgroundColor: '#e4ebff',
+        textColor: '#27314a',
+        fontSize: 18,
+        bold: true,
+      },
+    },
+    {
+      id: 'drawing-1',
+      type: 'drawing',
+      position: { x: 40, y: 60 },
+      data: {
+        title: 'Freehand drawing',
+        text: '',
+        path: 'M 0 0 L 20 30 L 45 10',
+        strokeColor: '#26352a',
+        strokeWidth: 5,
+        strokeOpacity: 0.45,
+        width: 50,
+        height: 35,
+      },
+    },
+  ])
+
+  const restored = new Y.Doc()
+  Y.applyUpdate(restored, Y.encodeStateAsUpdate(source))
+  const restoredNodes = readNodesFromDocument(restored.getMap<Y.Map<unknown>>('nodes'))
+
+  assert.deepEqual(restoredNodes.find((node) => node.id === 'shape-1'), {
+    id: 'shape-1',
+    type: 'shape',
+    position: { x: 180, y: 240 },
+    data: {
+      title: 'Decision',
+      text: 'Continue?',
+      width: 210,
+      height: 130,
+      backgroundColor: '#e4ebff',
+      textColor: '#27314a',
+      fontSize: 18,
+      bold: true,
+      shape: 'diamond',
+    },
+  })
+  assert.deepEqual(restoredNodes.find((node) => node.id === 'drawing-1'), {
+    id: 'drawing-1',
+    type: 'drawing',
+    position: { x: 40, y: 60 },
+    data: {
+      title: 'Freehand drawing',
+      text: '',
+      width: 50,
+      height: 35,
+      shape: undefined,
+      path: 'M 0 0 L 20 30 L 45 10',
+      strokeColor: '#26352a',
+      strokeWidth: 5,
+      strokeOpacity: 0.45,
+    },
+  })
+})
+
+test('deleting a canvas node removes it from the shared document', () => {
+  const document = new Y.Doc()
+  const nodes = document.getMap<Y.Map<unknown>>('nodes')
+  const secondNode: CanvasDocumentNode = {
+    id: 'note-2',
+    type: 'note',
+    position: { x: 260, y: 150 },
+    data: { title: 'Keep this', text: 'Still here' },
+  }
+
+  syncNodesToDocument(document, nodes, [initialNode, secondNode])
+  syncNodesToDocument(document, nodes, [secondNode])
+
+  assert.deepEqual(readNodesFromDocument(nodes), [secondNode])
+})
+
