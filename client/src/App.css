@@ -933,3 +933,21 @@
   .template-tool-button span { display: none; }
   .template-tool-button { padding: 0 8px; }
 }
+
+/* First-time user onboarding tour */
+.onboarding-backdrop { z-index: 1200; padding: 18px; }
+.onboarding-dialog { width: min(100%, 430px); padding: 30px; }
+.onboarding-illustration { display:flex; align-items:center; justify-content:center; gap:16px; min-height:100px; margin:0 0 22px; border:1px solid #e9eadf; border-radius:14px; background:linear-gradient(135deg,#f7f8f2,#eef1e7); color:#58664a; }
+.onboarding-illustration svg:nth-child(2) { color:#c78569; }
+.onboarding-dialog h2 { margin: 8px 0 10px; font-family:var(--display); font-size:25px; line-height:1.2; }
+.onboarding-dialog .auth-subtitle { margin:0; line-height:1.65; }
+.onboarding-progress { display:flex; gap:6px; margin:24px 0 20px; }
+.onboarding-progress span { height:4px; flex:1; border-radius:99px; background:#e6e7df; }
+.onboarding-progress span.active { background:#6d7c5b; }
+.onboarding-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.onboarding-actions .auth-submit { width:auto; min-width:125px; margin:0; }
+@media (max-width:480px) {
+  .onboarding-backdrop { padding:14px; }
+  .onboarding-dialog { padding:24px 20px; }
+  .onboarding-dialog h2 { font-size:22px; }
+}
