@@ -801,6 +801,7 @@ function BoardCanvas({
   const [showBoardMenu, setShowBoardMenu] = useState(false)
   const [showCollaborationPanel, setShowCollaborationPanel] = useState(false)
   const [showTemplateGallery, setShowTemplateGallery] = useState(false)
+  const [onboardingStep, setOnboardingStep] = useState(() => window.localStorage.getItem(`canvaslab:onboarding-complete:${user.id}`) === 'true' ? -1 : 0)
   const selectedNode = nodes.find((node) => node.selected && !node.data.readOnly)
   function updateSelectedNode(patch: Partial<CanvasNode['data']>) {
     if (!selectedNode) return
@@ -1211,6 +1212,21 @@ function BoardCanvas({
         </div>
 
         
+        {onboardingStep >= 0 && <div className="modal-backdrop onboarding-backdrop" role="presentation">
+          <section className="create-dialog onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-description">
+            <button className="dialog-close" aria-label="Skip onboarding" onClick={() => { window.localStorage.setItem(`canvaslab:onboarding-complete:${user.id}`, 'true'); setOnboardingStep(-1) }}>×</button>
+            <div className="onboarding-illustration" aria-hidden="true">{onboardingStep === 0 ? <><Pencil size={24} /><StickyNote size={28} /><Square size={23} /></> : onboardingStep === 1 ? <><MousePointer2 size={24} /><Copy size={26} /><Trash2 size={22} /></> : <><Users size={25} /><Activity size={25} /><Command size={24} /></>}</div>
+            <p className="auth-kicker">QUICK TOUR · {onboardingStep + 1} OF 3</p>
+            <h2 id="onboarding-title">{['Bring your ideas to the canvas', 'Shape and organize your work', 'Make it better together'][onboardingStep]}</h2>
+            <p id="onboarding-description" className="auth-subtitle">{[
+              'Use the toolbar to draw, erase, add sticky notes, text, code blocks, shapes, and checklists. On mobile, swipe the toolbar to see more tools.',
+              'Select an item to format, resize, duplicate, or delete it. Drag items to arrange your board, and start faster with a ready-made template.',
+              'Use Share to invite people, and Collab for comments, tasks, decisions, and activity. Your board syncs when collaboration is connected.',
+            ][onboardingStep]}</p>
+            <div className="onboarding-progress" aria-label={`Step ${onboardingStep + 1} of 3`}>{[0, 1, 2].map((step) => <span key={step} className={step === onboardingStep ? 'active' : ''} />)}</div>
+            <div className="onboarding-actions"><button type="button" className="button button-outline" onClick={() => { window.localStorage.setItem(`canvaslab:onboarding-complete:${user.id}`, 'true'); setOnboardingStep(-1) }}>Skip tour</button><button type="button" className="auth-submit" onClick={() => { if (onboardingStep === 2) { window.localStorage.setItem(`canvaslab:onboarding-complete:${user.id}`, 'true'); setOnboardingStep(-1) } else setOnboardingStep((step) => step + 1) }}>{onboardingStep === 2 ? 'Get started' : 'Next'} <ArrowRight size={16} /></button></div>
+          </section>
+        </div>}
         {showCollaborationPanel && <CollaborationPanel board={board} canEdit={canEdit} selectedElement={selectedNode ? { id: selectedNode.id, title: selectedNode.data.title || selectedNode.id } : null} elements={nodes.map((node) => ({ id: node.id, title: node.data.title || node.id }))} onClose={() => setShowCollaborationPanel(false)} />}
         {showTemplateGallery && <TemplateGallery onChoose={applyTemplate} onClose={() => setShowTemplateGallery(false)} />}
       </section>
