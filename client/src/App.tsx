@@ -856,7 +856,8 @@ function BoardCanvas({
         collaborationBridgeRef.current = bridge
 
         const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const socketUrl = import.meta.env.VITE_COLLAB_URL || `${socketProtocol}//${window.location.hostname}:1234`
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        const socketUrl = import.meta.env.VITE_COLLAB_URL || (isLocalHost ? `${socketProtocol}//${window.location.hostname}:1234` : 'wss://canvaslab-collab.onrender.com')
         provider = new providerModule.HocuspocusProvider({
           url: socketUrl,
           name: board.id,
