@@ -357,7 +357,7 @@
 .empty-note { position: absolute; display: flex; width: 133px; height: 93px; align-items: center; justify-content: center; border: 1px solid #e0d8a8; border-radius: 4px; background: #fff0b3; box-shadow: 0 5px 14px #454a3b12; color: #5c5949; font-size: 12px; font-weight: 600; line-height: 1.5; text-align: center; transform: rotate(-6deg); }
 .note-one { top: 42px; left: 52px; }.note-two { right: 45px; bottom: 34px; border-color: #cedbc8; background: #e1eddd; transform: rotate(5deg); }
 .empty-code { position: absolute; top: 54px; right: 42px; border: 1px solid #33403b; border-radius: 4px; background: #2c3935; padding: 10px 13px; color: #e8d48e; font: 9px var(--mono); transform: rotate(3deg); }
-.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; background: #22271f70; padding: 20px; }
+.modal-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; background: #22271fbb; padding: 20px; }
 .create-dialog { position: relative; width: min(100%, 420px); border: 1px solid #e4e6df; border-radius: 8px; background: #fcfcfa; box-shadow: 0 20px 60px #20251c32; padding: 28px; animation: dialog-appear 160ms ease-out both; }
 @keyframes dialog-appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .dialog-close { position: absolute; top: 12px; right: 12px; display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 5px; background: transparent; color: #878a82; cursor: pointer; font-size: 20px; }
