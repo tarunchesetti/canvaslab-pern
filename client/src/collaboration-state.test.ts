@@ -169,7 +169,6 @@ test('shape and drawing properties survive a saved-document restore', () => {
       text: '',
       width: 50,
       height: 35,
-      shape: undefined,
       path: 'M 0 0 L 20 30 L 45 10',
       strokeColor: '#26352a',
       strokeWidth: 5,
