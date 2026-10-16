@@ -1194,6 +1194,7 @@ function BoardCanvas({
             edges={[]}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
+            panOnDrag={false}
             fitView
             fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
             minZoom={0.35}
