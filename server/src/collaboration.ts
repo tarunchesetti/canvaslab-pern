@@ -81,6 +81,28 @@ export function createCollaborationServer(pool: Pool, sessionSecret: string, por
       connectionConfig.readOnly = member.role === 'viewer'
       return { userId, role: member.role, displayName: member.display_name }
     },
+    async onTokenSync({ documentName, token, context, connectionConfig }) {
+      const boardId = parseBoardId(documentName)
+      const userId = await verifyCollaborationToken(token, sessionSecret)
+      if (!userId || !context || context.userId !== userId) {
+        throw new Error('Authentication required')
+      }
+
+      // Re-check membership during active sessions so role changes and removals
+      // are enforced without waiting for a full browser reconnect.
+      const membership = await pool.query<MembershipRow>(
+        `SELECT m.role, u.display_name
+         FROM board_members m
+         JOIN users u ON u.id = m.user_id
+         WHERE m.board_id = $1 AND m.user_id = $2`,
+        [boardId, userId],
+      )
+      const member = membership.rows[0]
+      if (!member) throw new Error('Board access denied')
+
+      connectionConfig.readOnly = member.role === 'viewer'
+      return { userId, role: member.role, displayName: member.display_name }
+    },
     async beforeHandleAwareness({ states, context }) {
       if (!context) return
       for (const state of states.values()) {
