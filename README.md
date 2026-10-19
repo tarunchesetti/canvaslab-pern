@@ -18,7 +18,7 @@ See [CanvasLab Collaboration System Design](docs/COLLABORATION_SYSTEM_DESIGN.md)
 
 ## Requirements
 
-- Node.js 20.19+ or 22.12+
+- Node.js 22.12+ (Hocuspocus v4 requires Node.js 22 or later)
 - Docker Desktop (for the local PostgreSQL option)
 - npm
 
