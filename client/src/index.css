@@ -23,3 +23,37 @@ body { min-height: 100vh; }
 button, textarea { font-family: inherit; }
 button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid #789268; outline-offset: 2px; }
 ::selection { background: #d8e1cb; color: #252920; }
+
+
+/* Aurora Studio design tokens */
+:root {
+  color-scheme: dark;
+  --paper: #090b16;
+  --ink: #f2f3ff;
+  --line: rgba(164, 170, 255, .15);
+  --body: 'DM Sans', 'Segoe UI', sans-serif;
+  --display: 'Manrope', 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', Consolas, monospace;
+  --aurora-panel: #111426;
+  --aurora-panel-raised: #171b32;
+  --aurora-muted: #a0a6c7;
+  --aurora-violet: #9b8cff;
+  --aurora-blue: #55b8ff;
+  font-family: var(--body);
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+html, body, #root { background: #090b16; }
+body {
+  background-image: radial-gradient(ellipse at 12% 0%, rgba(102, 78, 220, .15), transparent 38%),
+    radial-gradient(ellipse at 92% 12%, rgba(42, 145, 255, .10), transparent 34%);
+}
+button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid #8f9cff;
+  outline-offset: 3px;
+}
+::selection { background: rgba(127, 107, 255, .42); color: #fff; }
