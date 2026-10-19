@@ -12,6 +12,10 @@ CanvasLab is a collaborative whiteboard and shared code canvas built with React,
 - Resizable note/text/code blocks, JavaScript and TypeScript code-language selection, canvas zoom/pan, and canvas search.
 - Server-side board membership and role checks; invitation tokens and password-reset tokens are stored as hashes and expire.
 
+## Architecture and system design
+
+See [CanvasLab Collaboration System Design](docs/COLLABORATION_SYSTEM_DESIGN.md) for the current architecture, Google Docs-style collaboration principles mapped to what is implemented, known gaps, and the phased reliability roadmap.
+
 ## Requirements
 
 - Node.js 20.19+ or 22.12+
