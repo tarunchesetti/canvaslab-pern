@@ -951,3 +951,11 @@
   .onboarding-dialog { padding:24px 20px; }
   .onboarding-dialog h2 { font-size:22px; }
 }
+
+/* Google sign-in */
+.google-signin { display:flex; width:100%; min-height:42px; align-items:center; justify-content:center; gap:11px; margin-top:17px; border:1px solid #dadce0; border-radius:5px; background:#fff; color:#3c4043; text-decoration:none; font-size:12px; font-weight:600; transition:background 120ms ease,box-shadow 120ms ease; }
+.google-signin:hover { background:#f8faff; box-shadow:0 1px 3px #00000018; }
+.google-signin:focus-visible { outline:2px solid #4285f4; outline-offset:2px; }
+.google-signin-mark { display:grid; width:19px; height:19px; place-items:center; border:1px solid #e1e3e6; border-radius:50%; color:#4285f4; font-family:Arial,sans-serif; font-size:14px; font-weight:700; }
+.auth-divider { display:flex; align-items:center; gap:12px; margin:15px 0 3px; color:#9a9d95; font-size:10px; }
+.auth-divider::before,.auth-divider::after { height:1px; flex:1; background:#e8e9e3; content:''; }

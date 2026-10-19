@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { Router, type Request } from 'express'
+import { createRemoteJWKSet, jwtVerify } from 'jose'
 import type { Pool } from 'pg'
 import type { Environment } from '../config.js'
 import { isEmailConfigured, sendTransactionalEmail } from '../email.js'
@@ -12,7 +13,7 @@ interface UserRow {
   id: string
   display_name: string
   email: string
-  password_hash: string
+  password_hash: string | null
 }
 
 function startUserSession(request: Request, userId: string): Promise<void> {
@@ -35,6 +36,122 @@ function publicUser(user: Pick<UserRow, 'id' | 'display_name' | 'email'>) {
 
 export function createAuthRouter(pool: Pool, sessionSecret: string, configuration: Environment): Router {
   const router = Router()
+
+  router.get('/google', async (request, response) => {
+    if (!configuration.GOOGLE_CLIENT_ID || !configuration.GOOGLE_CLIENT_SECRET || !configuration.GOOGLE_REDIRECT_URI) {
+      response.redirect(new URL('/?authError=google', configuration.APP_BASE_URL).toString())
+      return
+    }
+
+    const state = randomBytes(32).toString('base64url')
+    const session = request.session as typeof request.session & { googleOAuthState?: string; googleOAuthReturnTo?: string }
+    session.googleOAuthState = state
+    const requestedReturnTo = typeof request.query.returnTo === 'string' ? request.query.returnTo : '/'
+    session.googleOAuthReturnTo = requestedReturnTo.startsWith('/') && !requestedReturnTo.startsWith('//') && !requestedReturnTo.includes('\\') ? requestedReturnTo : '/'
+    await new Promise<void>((resolve, reject) => {
+      request.session.save((error) => error ? reject(error) : resolve())
+    })
+
+    const authorizationUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+    authorizationUrl.search = new URLSearchParams({
+      client_id: configuration.GOOGLE_CLIENT_ID,
+      redirect_uri: configuration.GOOGLE_REDIRECT_URI,
+      response_type: 'code',
+      scope: 'openid email profile',
+      state,
+      prompt: 'select_account',
+    }).toString()
+    response.redirect(authorizationUrl.toString())
+  })
+
+  router.get('/google/callback', async (request, response) => {
+    const redirectToLogin = () => response.redirect(new URL('/?authError=google', configuration.APP_BASE_URL).toString())
+    const session = request.session as typeof request.session & { googleOAuthState?: string; googleOAuthReturnTo?: string }
+    const state = typeof request.query.state === 'string' ? request.query.state : ''
+    const code = typeof request.query.code === 'string' ? request.query.code : ''
+    const expectedState = session.googleOAuthState
+    const returnTo = session.googleOAuthReturnTo ?? '/'
+    delete session.googleOAuthState
+    delete session.googleOAuthReturnTo
+
+    if (!expectedState || !state || state !== expectedState || !code || request.query.error) {
+      redirectToLogin()
+      return
+    }
+
+    if (!configuration.GOOGLE_CLIENT_ID || !configuration.GOOGLE_CLIENT_SECRET || !configuration.GOOGLE_REDIRECT_URI) {
+      redirectToLogin()
+      return
+    }
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: configuration.GOOGLE_CLIENT_ID,
+        client_secret: configuration.GOOGLE_CLIENT_SECRET,
+        redirect_uri: configuration.GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code',
+      }),
+    })
+    const tokenPayload = await tokenResponse.json() as { id_token?: string }
+    if (!tokenResponse.ok || !tokenPayload.id_token) {
+      redirectToLogin()
+      return
+    }
+
+    let payload: Awaited<ReturnType<typeof jwtVerify>>['payload']
+    try {
+      const googleKeys = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'))
+      const verified = await jwtVerify(tokenPayload.id_token, googleKeys, {
+        issuer: ['https://accounts.google.com', 'accounts.google.com'],
+        audience: configuration.GOOGLE_CLIENT_ID,
+      })
+      payload = verified.payload
+    } catch {
+      redirectToLogin()
+      return
+    }
+    if (payload.email_verified !== true || typeof payload.email !== 'string' || !payload.email.trim()) {
+      redirectToLogin()
+      return
+    }
+
+    const email = payload.email.trim().toLowerCase()
+    let user = (await pool.query<UserRow>(
+      'SELECT id, display_name, email, password_hash FROM users WHERE LOWER(email) = $1',
+      [email],
+    )).rows[0]
+
+    if (!user) {
+      const id = randomUUID()
+      const displayName = typeof payload.name === 'string' && payload.name.trim()
+        ? payload.name.trim().slice(0, 80)
+        : email.split('@')[0]!.slice(0, 80)
+      try {
+        const result = await pool.query<UserRow>(
+          'INSERT INTO users (id, display_name, email, password_hash) VALUES ($1, $2, $3, NULL) RETURNING id, display_name, email, password_hash',
+          [id, displayName, email],
+        )
+        user = result.rows[0]
+      } catch (error) {
+        if (typeof error !== 'object' || error === null || !('code' in error) || error.code !== '23505') throw error
+        user = (await pool.query<UserRow>(
+          'SELECT id, display_name, email, password_hash FROM users WHERE LOWER(email) = $1',
+          [email],
+        )).rows[0]
+      }
+    }
+
+    if (!user) {
+      redirectToLogin()
+      return
+    }
+    await startUserSession(request, user.id)
+    const safeReturnTo = returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('\\') ? returnTo : '/'
+    response.redirect(new URL(safeReturnTo, configuration.APP_BASE_URL).toString())
+  })
 
   router.post('/register', async (request, response) => {
     const parsed = registerSchema.safeParse(request.body)
@@ -77,7 +194,7 @@ export function createAuthRouter(pool: Pool, sessionSecret: string, configuratio
       [email],
     )
     const user = result.rows[0]
-    if (!user || !(await bcrypt.compare(parsed.data.password, user.password_hash))) {
+    if (!user || !user.password_hash || !(await bcrypt.compare(parsed.data.password, user.password_hash))) {
       response.status(401).json({ error: 'Email or password is incorrect' })
       return
     }
