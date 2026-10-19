@@ -839,6 +839,7 @@ function BoardCanvas({
     let sharedNodes: Yjs.Map<Yjs.Map<unknown>> | null = null
     let provider: HocuspocusProvider | null = null
     let stopObserving: (() => void) | null = null
+    let tokenRefreshInterval: ReturnType<typeof setInterval> | null = null
 
     async function connect() {
       try {
@@ -865,6 +866,10 @@ function BoardCanvas({
           token: getCollaborationToken,
         })
         providerRef.current = provider
+        // Refresh the short-lived collaboration token and permissions during long sessions.
+        tokenRefreshInterval = setInterval(() => {
+          provider?.sendToken()
+        }, 60_000)
         provider.awareness?.setLocalStateField('user', {
           id: user.id,
           name: user.displayName,
@@ -933,6 +938,7 @@ function BoardCanvas({
 
     return () => {
       active = false
+      if (tokenRefreshInterval) clearInterval(tokenRefreshInterval)
       stopObserving?.()
       provider?.destroy()
       providerRef.current = null
