@@ -71,7 +71,7 @@ type CanvasNode = Node<{
 
 type CollaborationBridge = Pick<typeof import('./collaboration-state'), 'canvasNodeSignature' | 'readNodesFromDocument' | 'syncNodesToDocument'>
 
-type RemoteCursor = { id: string; name: string; color: string; x: number; y: number }
+type RemoteCursor = { id: string; name: string; color: string; x: number; y: number; activity?: string }
 
 function CollaborationCursorLayer({ providerRef, wrapperRef, cursors }: {
   providerRef: React.RefObject<HocuspocusProvider | null>
@@ -106,7 +106,7 @@ function CollaborationCursorLayer({ providerRef, wrapperRef, cursors }: {
         const point = flowToScreenPosition({ x: cursor.x, y: cursor.y })
         return <div key={cursor.id} className="remote-cursor" style={{ left: point.x - bounds.left, top: point.y - bounds.top, color: cursor.color }}>
           <svg width="15" height="18" viewBox="0 0 15 18" fill="currentColor"><path d="M1 1 L1 14 L5 10 L8 16 L11 14 L8 8 L14 8 Z" /></svg>
-          <span>{cursor.name}</span>
+          <span className="remote-cursor-label"><strong>{cursor.name}</strong>{cursor.activity && <small>{cursor.activity}</small>}</span>
         </div>
       })}
     </div>
@@ -819,7 +819,7 @@ function BoardCanvas({
   const [collaborationReady, setCollaborationReady] = useState(false)
   const [collaborationError, setCollaborationError] = useState('')
   const canInteract = canEdit && collaborationReady
-  const [collaborators, setCollaborators] = useState<{ id: string; name: string; color: string }[]>([])
+  const [collaborators, setCollaborators] = useState<{ id: string; name: string; color: string; activeItem?: string }[]>([])
   const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([])
   const providerRef = useRef<HocuspocusProvider | null>(null)
   const canvasWrapperRef = useRef<HTMLDivElement | null>(null)
@@ -903,9 +903,9 @@ function BoardCanvas({
           setCollaborationReady(true)
           setCollaborationStatus('connected')
         })
-        provider.on('awarenessUpdate', ({ states }: { states: { clientId: number; user?: { id?: string; name?: string; color?: string }; cursor?: { x?: number; y?: number } | null }[] }) => {
+        provider.on('awarenessUpdate', ({ states }: { states: { clientId: number; user?: { id?: string; name?: string; color?: string }; cursor?: { x?: number; y?: number } | null; activeItem?: { id?: string; title?: string; action?: string } | null }[] }) => {
           if (!active) return
-          const usersById = new Map<string, { id: string; name: string; color: string }>()
+          const usersById = new Map<string, { id: string; name: string; color: string; activeItem?: string }>()
           const cursorsById = new Map<string, RemoteCursor>()
           for (const state of states) {
             const collaborator = state.user
@@ -914,9 +914,10 @@ function BoardCanvas({
               id: collaborator.id,
               name: collaborator.name,
               color: collaborator.color ?? '#93a17e',
+              ...(state.activeItem?.title ? { activeItem: `${state.activeItem.action ?? 'Working on'}: ${state.activeItem.title}` } : {}),
             })
             if (collaborator.id !== user.id && typeof state.cursor?.x === 'number' && typeof state.cursor?.y === 'number') {
-              cursorsById.set(collaborator.id, { id: collaborator.id, name: collaborator.name, color: collaborator.color ?? '#93a17e', x: state.cursor.x, y: state.cursor.y })
+              cursorsById.set(collaborator.id, { id: collaborator.id, name: collaborator.name, color: collaborator.color ?? '#93a17e', x: state.cursor.x, y: state.cursor.y, ...(state.activeItem?.title ? { activity: `${state.activeItem.action ?? 'Working on'}: ${state.activeItem.title}` } : {}) })
             }
           }
           setCollaborators([...usersById.values()])
@@ -1193,7 +1194,7 @@ function BoardCanvas({
             <button type="button" className="format-button format-danger" aria-label="Delete selected object" title="Delete" onClick={deleteSelectedNode}><Trash2 size={15} /></button>
           </div>}
 
-          <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
+          <div className="canvas-live"><div className="canvas-live-status"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>{collaborators.filter((collaborator) => collaborator.id !== user.id).map((collaborator) => <div key={collaborator.id} className="collaboration-activity"><span className="collaboration-activity-dot" style={{ backgroundColor: collaborator.color }} /><strong>{collaborator.name}</strong><span>{collaborator.activeItem ?? 'Viewing board'}</span></div>)}</div>
           <ReactFlow
             onInit={(instance) => { screenToFlowPositionRef.current = instance.screenToFlowPosition }}
             nodes={nodes}
@@ -1207,7 +1208,8 @@ function BoardCanvas({
             maxZoom={1.4}
             nodesDraggable={canInteract && !['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool)}
             nodesConnectable={false}
-            onNodeClick={(_event, node) => { if (activeTool === 'eraser' && canInteract && node.type === 'drawing') setNodes((current) => current.filter((item) => item.id !== node.id)) }}
+            onNodeClick={(_event, node) => { providerRef.current?.awareness?.setLocalStateField('activeItem', { id: node.id, title: node.data.title || node.id, action: 'Working on' }); if (activeTool === 'eraser' && canInteract && node.type === 'drawing') setNodes((current) => current.filter((item) => item.id !== node.id)) }}
+            onSelectionChange={({ nodes: selectedNodes }) => { const selected = selectedNodes[0]; providerRef.current?.awareness?.setLocalStateField('activeItem', selected ? { id: selected.id, title: selected.data.title || selected.id, action: 'Working on' } : null) }}
             elementsSelectable
             deleteKeyCode={canInteract ? ['Backspace', 'Delete'] : null}
           >
