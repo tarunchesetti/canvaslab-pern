@@ -317,7 +317,7 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordVisible, setPasswordVisible] = useState(false)
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
-  const [error, setError] = useState(() => initialError || (new URLSearchParams(window.location.search).get('authError') === 'google' ? 'Google sign-in could not be completed. Please try again or use your email and password.' : ''))
+  const [error, setError] = useState(initialError)
   const [notice, setNotice] = useState('')
   const [resetUrl, setResetUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -390,13 +390,6 @@ function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user:
             <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('login'); setError(''); setNotice(''); setPassword(''); setConfirmPassword('') }}>Sign in</button>
             <button type="button" role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'auth-tab selected' : 'auth-tab'} onClick={() => { setMode('register'); setError(''); setNotice(''); setPassword(''); setConfirmPassword('') }}>Create account</button>
           </div>}
-          {(mode === 'login' || mode === 'register') && <>
-            <a className="google-signin" href={`${(import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')}/auth/google?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`} aria-label="Continue with Google">
-              <span className="google-signin-mark" aria-hidden="true">G</span>
-              <span>Continue with Google</span>
-            </a>
-            <div className="auth-divider"><span>or continue with email</span></div>
-          </>}
           <form className="auth-form" onSubmit={handleSubmit}>
             {mode === 'register' && <label>Name<input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required maxLength={80} placeholder="How should we call you?" /></label>}
             {mode !== 'reset' && <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>}
