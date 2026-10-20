@@ -951,28 +951,3 @@
   .onboarding-dialog { padding:24px 20px; }
   .onboarding-dialog h2 { font-size:22px; }
 }
-
-
-/* Live collaborator identity and the object each person is working on. */
-.remote-cursor-layer { z-index: 30; }
-.remote-cursor { z-index: 31; }
-.remote-cursor-label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-width: 190px;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-.remote-cursor-label strong { color: #fff; font-size: 10px; font-weight: 750; line-height: 1.2; }
-.remote-cursor-label small { color: #fff; font-size: 9px; font-weight: 500; line-height: 1.25; opacity: .96; }
-.canvas-live { flex-direction: column; align-items: flex-end; gap: 5px; max-width: min(290px, 45%); }
-.canvas-live-status { display: flex; align-items: center; gap: 6px; }
-.collaboration-activity { display: flex; align-items: center; gap: 4px; max-width: 100%; color: #686b62; font-size: 9px; line-height: 1.25; }
-.collaboration-activity strong { color: #45483f; font-weight: 700; }
-.collaboration-activity > span:last-child { overflow: hidden; max-width: 150px; text-overflow: ellipsis; white-space: nowrap; }
-.collaboration-activity-dot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; }
-@media (max-width: 760px) {
-  .canvas-live { top: 50px; right: 10px; max-width: 56%; }
-  .collaboration-activity > span:last-child { max-width: 100px; }
-}
