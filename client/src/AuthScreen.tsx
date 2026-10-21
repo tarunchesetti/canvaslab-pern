@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, Command, Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { completePasswordReset, requestPasswordReset, signIn, signUp, type User } from './api'
 import { passwordsMatch } from './auth-validation'
+import ThemeToggle from './ThemeToggle'
 import './App.css'
 
 export default function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user: User) => void; initialError: string }) {
@@ -77,6 +78,7 @@ export default function AuthScreen({ onAuthenticated, initialError }: { onAuthen
 
   return (
     <main className="auth-page">
+      <ThemeToggle />
       <div className="auth-side">
         <a className="brand auth-brand" href="#"><span className="brand-mark"><Command size={17} strokeWidth={2.5} /></span><span>canvas<span className="brand-light">lab</span></span></a>
         <div className="auth-story">
