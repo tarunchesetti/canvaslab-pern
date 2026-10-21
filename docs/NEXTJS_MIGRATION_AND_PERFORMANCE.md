@@ -24,3 +24,17 @@ The Next.js App Router preview now loads the existing CanvasLab application at `
 ## Known limitation
 
 This is a migration preview, not a claim that Next.js is faster. The editor currently runs as a client-side app within the Next.js shell. Server rendering is appropriate for public, non-sensitive pages; the authenticated interactive canvas must stay client-side. The separate preview deployment and end-to-end collaboration checks are required before production use.
+
+
+## Preliminary CI bundle snapshot
+
+These are build-output sizes from the CI run for the existing Vite app and this Next.js preview. They are useful as a reference, but **they are not a runtime performance comparison** because the Next.js editor is dynamically imported and its chunk is not included in the route's reported first-load JS.
+
+| Build output | Raw size | Gzip size |
+| --- | ---: | ---: |
+| Vite main entry JS | 486.64 kB | 149.31 kB |
+| Vite lazy CodeEditor chunk | 510.87 kB | 171.51 kB |
+| Next.js shared first-load JS (reported) | 103 kB | Not reported by this build summary |
+| Next.js `/editor` route chunk (reported) | 1.37 kB | Not reported by this build summary |
+
+Next.js also defers the complete editor app to a client-only dynamic chunk, so the editor's actual time-to-usable and total transferred JS must be measured in a deployed browser. Do not treat the smaller initial route figure alone as proof of a faster editor. Capture at least five cold and warm loads per app on the same test machine and network, then compare medians for FCP/LCP, CLS, total blocking time, transferred JS, editor usable time, and collaboration sync-ready time.
