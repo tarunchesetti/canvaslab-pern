@@ -44,8 +44,7 @@ import { acceptBoardInvitation, inviteBoardMember, ApiError, createBoard, delete
 import type * as Yjs from 'yjs'
 import { passwordsMatch } from './auth-validation'
 import type { CanvasDocumentNode } from './collaboration-state'
-import { CollaborationPanel } from './CollaborationPanel'
-import { TemplateGallery, type CanvasTemplateId } from './TemplateGallery'
+import type { CanvasTemplateId } from './TemplateGallery'
 import '@xyflow/react/dist/style.css'
 import './App.css'
 
@@ -114,6 +113,8 @@ function CollaborationCursorLayer({ providerRef, wrapperRef, cursors }: {
 }
 
 const CodeEditor = lazy(() => import('./CodeEditor'))
+const CollaborationPanel = lazy(() => import('./CollaborationPanel').then(({ CollaborationPanel }) => ({ default: CollaborationPanel })))
+const TemplateGallery = lazy(() => import('./TemplateGallery').then(({ TemplateGallery }) => ({ default: TemplateGallery })))
 
 function NoteCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
@@ -1235,8 +1236,8 @@ function BoardCanvas({
             <div className="onboarding-actions"><button type="button" className="button button-outline" onClick={() => { window.localStorage.setItem(`canvaslab:onboarding-complete:${user.id}`, 'true'); setOnboardingStep(-1) }}>Skip tour</button><button type="button" className="auth-submit" onClick={() => { if (onboardingStep === 2) { window.localStorage.setItem(`canvaslab:onboarding-complete:${user.id}`, 'true'); setOnboardingStep(-1) } else setOnboardingStep((step) => step + 1) }}>{onboardingStep === 2 ? 'Get started' : 'Next'} <ArrowRight size={16} /></button></div>
           </section>
         </div>}
-        {showCollaborationPanel && <CollaborationPanel board={board} canEdit={canEdit} selectedElement={selectedNode ? { id: selectedNode.id, title: selectedNode.data.title || selectedNode.id } : null} elements={nodes.map((node) => ({ id: node.id, title: node.data.title || node.id }))} onClose={() => setShowCollaborationPanel(false)} />}
-        {showTemplateGallery && <TemplateGallery onChoose={applyTemplate} onClose={() => setShowTemplateGallery(false)} />}
+        {showCollaborationPanel && <Suspense fallback={<div className="modal-backdrop" role="status">Loading collaboration tools…</div>}><CollaborationPanel board={board} canEdit={canEdit} selectedElement={selectedNode ? { id: selectedNode.id, title: selectedNode.data.title || selectedNode.id } : null} elements={nodes.map((node) => ({ id: node.id, title: node.data.title || node.id }))} onClose={() => setShowCollaborationPanel(false)} /></Suspense>}
+        {showTemplateGallery && <Suspense fallback={<div className="modal-backdrop" role="status">Loading templates…</div>}><TemplateGallery onChoose={applyTemplate} onClose={() => setShowTemplateGallery(false)} /></Suspense>}
       </section>
     </main>
   )
