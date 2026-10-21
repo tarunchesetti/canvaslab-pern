@@ -1156,3 +1156,98 @@ html[data-theme="dark"] .selection-toolbar select { background:var(--input); bor
 
 .art-note-lilac { border-color: #b4a0e8; background: #e6ddff; color: #26334a; }
 :root[data-theme="dark"] .art-note-lilac { border-color: #a897dd; background: #e0d5ff; color: #26334a; }
+
+
+/* Keep every interactive state in the sketchbook's blue/lilac palette — never green. */
+:root {
+  --interaction-accent: var(--accent-blue);
+  --interaction-wash: color-mix(in srgb, var(--accent-blue) 16%, var(--surface));
+}
+:root[data-theme="dark"] {
+  --interaction-accent: var(--accent-blue);
+  --interaction-wash: color-mix(in srgb, var(--accent-blue) 22%, var(--surface));
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible {
+  outline: 2px solid var(--interaction-accent) !important;
+  outline-offset: 2px;
+}
+.auth-tab.selected::after,
+.onboarding-progress span.active {
+  background: var(--accent-blue) !important;
+}
+.auth-tab.selected,
+.auth-tab.active,
+[role="tab"][aria-selected="true"] {
+  color: var(--ink);
+}
+.auth-form input:focus,
+.board-list-search:focus-within,
+.password-toggle:focus-visible,
+.theme-toggle-button:focus-visible,
+.auth-back-link:focus-visible {
+  border-color: var(--interaction-accent) !important;
+  outline-color: var(--interaction-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--interaction-accent) 24%, transparent) !important;
+}
+.nav-active,
+.selected-board,
+.mobile-workspace-board-active,
+.tool-selected,
+.format-active {
+  background: var(--interaction-wash) !important;
+  border-color: color-mix(in srgb, var(--interaction-accent) 45%, var(--line));
+  color: var(--ink) !important;
+}
+.nav-active .nav-glyph,
+.nav-item svg,
+.auth-link,
+.auth-reset-link a,
+.invitation-link-actions a {
+  color: var(--interaction-accent);
+}
+button:hover:not(:disabled),
+a:hover,
+[role="button"]:hover,
+[role="tab"]:hover {
+  outline-color: var(--interaction-accent);
+}
+.nav-item:not(.nav-active):hover,
+.board-link:hover,
+.header-all-boards:hover,
+.mobile-header-menu > button:hover,
+.mobile-workspace-nav button:hover,
+.mobile-workspace-nav .mobile-workspace-link:active,
+.mobile-workspace-nav .mobile-workspace-link:hover,
+.mobile-header-menu > button:active,
+.mobile-header-menu > .mobile-board-current,
+.sidebar-label button:hover,
+.icon-button:hover,
+.title-chevron:hover,
+.dialog-close:hover,
+.board-options-menu button:hover,
+.board-list-row:hover,
+.member-row:hover,
+.password-toggle:hover,
+.template-tool-button:hover:not(:disabled),
+.tool-button:hover,
+.format-button:hover,
+.react-flow__controls-button:hover {
+  background: var(--interaction-wash) !important;
+  border-color: color-mix(in srgb, var(--interaction-accent) 38%, var(--line));
+}
+.auth-link:hover,
+.board-list-create:hover,
+.footer-shortcut:hover {
+  color: var(--interaction-accent) !important;
+}
+.button-outline:hover,
+.theme-toggle-button:hover {
+  border-color: color-mix(in srgb, var(--interaction-accent) 45%, var(--line));
+  background: var(--interaction-wash);
+}
