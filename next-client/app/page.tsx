@@ -49,7 +49,7 @@ export default function HomePage() {
               <div className="preview-connector preview-connector-one" />
               <div className="preview-sticky preview-sticky-green"><strong>Explore ideas</strong><span>Small steps, big outcomes.</span></div>
               <div className="preview-connector preview-connector-two" />
-              <div className="preview-code-card"><div><span /><span /><span /></div><strong>prototype.ts</strong><code>const idea = {'{'}<br />&nbsp; impact: 'real',<br />&nbsp; together: true<br />{'}'}</code></div>
+              <div className="preview-code-card"><div><span /><span /><span /></div><strong>prototype.ts</strong><code>const idea = {'{'}<br />&nbsp; impact: &apos;real&apos;,<br />&nbsp; together: true<br />{'}'}</code></div>
               <div className="preview-cursor preview-cursor-one"><span>Tarun</span><b>↖</b></div>
               <div className="preview-cursor preview-cursor-two"><span>Maya</span><b>↖</b></div>
               <div className="preview-canvas-caption">A workspace that moves with your thinking.</div>
