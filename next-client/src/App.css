@@ -956,3 +956,65 @@
 /* Clear, accessible back navigation for password recovery. */
 .auth-back-link { display: inline-flex; align-items: center; justify-self: end; gap: 6px; min-height: 32px; padding: 4px 0; color: #43553a; }
 .auth-back-link:focus-visible { outline: 2px solid #43553a; outline-offset: 3px; border-radius: 3px; }
+
+
+/* Persistent light/dark theme toggle */
+.theme-toggle-button { display:inline-flex; min-height:32px; flex:0 0 auto; align-items:center; justify-content:center; gap:6px; padding:0 9px; border:1px solid var(--line); border-radius:7px; background:var(--surface, #fff); color:var(--ink); cursor:pointer; font:inherit; font-size:11px; font-weight:600; }
+.theme-toggle-button:hover { background:var(--surface-hover, #f0f1ec); }
+.theme-toggle-button:focus-visible { outline:2px solid #91a77e; outline-offset:2px; }
+.auth-page > .theme-toggle-button { position:fixed; z-index:20; top:18px; right:18px; }
+@media (max-width:760px) { .theme-toggle-button { min-height:30px; gap:4px; padding:0 7px; } .theme-toggle-button span { display:none; } .auth-page > .theme-toggle-button { top:12px; right:12px; } }
+
+/* Dark theme surface and text overrides. Canvas node colors remain user-controlled. */
+html[data-theme="dark"] body { background:var(--paper); color:var(--ink); }
+html[data-theme="dark"] .app-shell, html[data-theme="dark"] .workspace, html[data-theme="dark"] .workspace-state, html[data-theme="dark"] .empty-shell { background:var(--paper); color:var(--ink); }
+html[data-theme="dark"] .sidebar, html[data-theme="dark"] .topbar, html[data-theme="dark"] .empty-topbar, html[data-theme="dark"] .mobile-workspace-nav { background:var(--surface); border-color:var(--line); }
+html[data-theme="dark"] .workspace-switcher, html[data-theme="dark"] .mobile-header-menu, html[data-theme="dark"] .create-dialog, html[data-theme="dark"] .board-list-dialog, html[data-theme="dark"] .members-dialog, html[data-theme="dark"] .onboarding-dialog { background:var(--surface); border-color:var(--line); color:var(--ink); }
+html[data-theme="dark"] .brand, html[data-theme="dark"] .breadcrumbs strong, html[data-theme="dark"] .board-heading h1, html[data-theme="dark"] .workspace-copy strong, html[data-theme="dark"] .profile-copy strong, html[data-theme="dark"] .auth-form-wrap h2, html[data-theme="dark"] .create-dialog h2, html[data-theme="dark"] .empty-content h1 { color:var(--ink); }
+html[data-theme="dark"] .brand-light, html[data-theme="dark"] .workspace-copy small, html[data-theme="dark"] .profile-copy small, html[data-theme="dark"] .auth-subtitle, html[data-theme="dark"] .auth-security, html[data-theme="dark"] .auth-panel-footer, html[data-theme="dark"] .board-heading p, html[data-theme="dark"] .board-status, html[data-theme="dark"] .workspace-footer { color:var(--muted); }
+html[data-theme="dark"] .nav-item, html[data-theme="dark"] .board-link, html[data-theme="dark"] .header-all-boards, html[data-theme="dark"] .mobile-header-menu > button, html[data-theme="dark"] .mobile-workspace-nav button { color:var(--muted); }
+html[data-theme="dark"] .nav-active, html[data-theme="dark"] .selected-board, html[data-theme="dark"] .mobile-workspace-board-active { background:var(--surface-hover); color:var(--ink); }
+html[data-theme="dark"] .nav-item:hover, html[data-theme="dark"] .board-link:hover, html[data-theme="dark"] .header-all-boards:hover, html[data-theme="dark"] .mobile-header-menu > button:hover, html[data-theme="dark"] .mobile-workspace-nav button:hover { background:var(--surface-hover); color:var(--ink); }
+html[data-theme="dark"] .sidebar-bottom, html[data-theme="dark"] .auth-panel-footer, html[data-theme="dark"] .mobile-menu-account, html[data-theme="dark"] .workspace-footer { border-color:var(--line); }
+html[data-theme="dark"] .button-outline, html[data-theme="dark"] .icon-button, html[data-theme="dark"] .mobile-nav-toggle, html[data-theme="dark"] .mobile-menu-label button, html[data-theme="dark"] .mobile-workspace-nav button, html[data-theme="dark"] .selection-toolbar, html[data-theme="dark"] .drawing-options { background:var(--surface); border-color:var(--line); color:var(--ink); }
+html[data-theme="dark"] .button-outline:hover, html[data-theme="dark"] .icon-button:hover, html[data-theme="dark"] .mobile-nav-toggle:hover { background:var(--surface-hover); }
+html[data-theme="dark"] .board-canvas-wrap { background-color:var(--canvas); }
+html[data-theme="dark"] .react-flow__pane { background-color:var(--canvas); }
+html[data-theme="dark"] .react-flow__controls, html[data-theme="dark"] .react-flow__controls-button { background:var(--surface); border-color:var(--line); fill:var(--ink); color:var(--ink); }
+html[data-theme="dark"] .react-flow__controls-button:hover { background:var(--surface-hover); }
+html[data-theme="dark"] .canvas-toolbar, html[data-theme="dark"] .minimap-preview { background:var(--surface); border-color:var(--line); color:var(--ink); }
+html[data-theme="dark"] .tool-button, html[data-theme="dark"] .format-button { color:var(--muted); }
+html[data-theme="dark"] .tool-button:hover, html[data-theme="dark"] .tool-selected, html[data-theme="dark"] .format-button:hover, html[data-theme="dark"] .format-active { background:var(--surface-hover); color:var(--ink); }
+html[data-theme="dark"] .modal-backdrop { background:#000b; }
+html[data-theme="dark"] .create-dialog input, html[data-theme="dark"] .create-dialog textarea, html[data-theme="dark"] .board-list-search, html[data-theme="dark"] .board-action-form input, html[data-theme="dark"] .member-add-form input, html[data-theme="dark"] .member-add-form select, html[data-theme="dark"] .auth-form input { background:var(--input); border-color:var(--line); color:var(--ink); }
+html[data-theme="dark"] .create-dialog input::placeholder, html[data-theme="dark"] .board-list-search::placeholder, html[data-theme="dark"] .auth-form input::placeholder { color:var(--muted); }
+html[data-theme="dark"] .board-list-row, html[data-theme="dark"] .member-row, html[data-theme="dark"] .board-list-results, html[data-theme="dark"] .member-list { background:var(--surface); border-color:var(--line); color:var(--ink); }
+html[data-theme="dark"] .auth-page { background:var(--paper); color:var(--ink); }
+html[data-theme="dark"] .auth-panel { background:var(--surface); color:var(--ink); }
+html[data-theme="dark"] .auth-panel-footer { background:transparent; }
+html[data-theme="dark"] .auth-form-wrap h2 { color:var(--ink); }
+html[data-theme="dark"] .auth-kicker, html[data-theme="dark"] .auth-form > label { color:var(--muted); }
+html[data-theme="dark"] .auth-tab { color:var(--muted); }
+html[data-theme="dark"] .auth-tab.active { color:var(--ink); }
+html[data-theme="dark"] .auth-mode-switch { background:var(--surface-hover); }
+html[data-theme="dark"] .auth-link, html[data-theme="dark"] .auth-back-link { color:#b8cba6; }
+html[data-theme="dark"] .auth-security { color:var(--muted); }
+html[data-theme="dark"] .auth-story h1 { color:#f3f4ee; }
+html[data-theme="dark"] .auth-story p { color:#c1c5b9; }
+html[data-theme="dark"] .auth-art { filter:brightness(.78) saturate(.8); }
+html[data-theme="dark"] .onboarding-illustration { background:var(--surface-hover); border-color:var(--line); }
+html[data-theme="dark"] .mobile-header-menu .mobile-menu-create-board { background:#dce6d2; color:#20251c; }
+html[data-theme="dark"] .mobile-header-menu .mobile-menu-signout { color:#f0a39a; }
+
+html[data-theme="dark"] .auth-side { background:#252e25; }
+html[data-theme="dark"] .auth-side .brand { color:#f1f3ec; }
+html[data-theme="dark"] .auth-side .brand-light { color:#c4cbbb; }
+html[data-theme="dark"] .auth-side .eyebrow { color:#c0c9b8; }
+html[data-theme="dark"] .auth-side .eyebrow-line { background:#9baa8e; }
+html[data-theme="dark"] .board-heading, html[data-theme="dark"] .empty-content { background:var(--paper); }
+html[data-theme="dark"] .empty-content > p { color:var(--muted); }
+html[data-theme="dark"] .board-list-row:hover, html[data-theme="dark"] .member-row:hover { background:var(--surface-hover); }
+html[data-theme="dark"] .board-action-form label, html[data-theme="dark"] .member-add-form label { color:var(--muted); }
+html[data-theme="dark"] .auth-error, html[data-theme="dark"] .auth-notice { color:var(--ink); }
+html[data-theme="dark"] .language-picker { background:var(--surface); border-color:var(--line); color:var(--ink); }
+html[data-theme="dark"] .selection-toolbar select { background:var(--input); border-color:var(--line); color:var(--ink); }
