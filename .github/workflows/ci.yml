@@ -43,6 +43,29 @@ jobs:
           node-version: 22
       - run: npm install --prefix next-client
       - run: npm run build --prefix next-client
+      - name: Smoke-test Next.js production routes
+        shell: bash
+        run: |
+          npm run start --prefix next-client > /tmp/canvaslab-next.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3000/editor -o /tmp/canvaslab-editor.html; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/canvaslab-next.log
+            echo "Next.js /editor route did not become ready"
+            exit 1
+          fi
+          grep -qi 'CanvasLab' /tmp/canvaslab-editor.html
+          ROOT_STATUS=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/)
+          test "$ROOT_STATUS" = "307" || test "$ROOT_STATUS" = "308"
+          echo "Next.js production smoke test passed: /editor returns HTML and / redirects to /editor"
       - name: Report Next.js JavaScript chunk sizes
         working-directory: next-client
         run: |
