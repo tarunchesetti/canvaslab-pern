@@ -38,3 +38,10 @@ These are build-output sizes from the CI run for the existing Vite app and this 
 | Next.js `/editor` route chunk (reported) | 1.37 kB | Not reported by this build summary |
 
 Next.js also defers the complete editor app to a client-only dynamic chunk, so the editor's actual time-to-usable and total transferred JS must be measured in a deployed browser. Do not treat the smaller initial route figure alone as proof of a faster editor. Capture at least five cold and warm loads per app on the same test machine and network, then compare medians for FCP/LCP, CLS, total blocking time, transferred JS, editor usable time, and collaboration sync-ready time.
+
+
+### Latest CI JavaScript inventory
+
+The CI build currently reports 25 Next.js client JavaScript chunks totaling **1,724.7 KiB raw / 544.3 KiB gzip**. The route summary reports `/editor` at 1.37 kB with 103 kB of shared first-load JavaScript (the route summary does not provide gzip sizes). For the existing Vite build, the reported JS chunks are approximately **1,121.6 kB raw / 357.5 kB gzip** across the main entry, lazy CodeEditor, Yjs, Hocuspocus, and collaboration-state chunks.
+
+These are not apples-to-apples startup payloads: the CodeEditor is lazy in Vite, and Next.js also splits its framework and route chunks. The inventory does show that the Next.js build currently emits more total client JavaScript, so we must not assume an overall size improvement. The key question is whether the initial transfer and time until the canvas is usable improve enough to offset additional chunks/runtime. Use browser network traces and at least five comparable cold/warm runs before deciding.
