@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import ThemeToggle from './ThemeToggle'
 import {
   Background,
   BackgroundVariant,
@@ -434,7 +435,7 @@ function WorkspaceError({ message, onRetry, onLogout }: { message: string; onRet
 function EmptyWorkspace({ user, error, onCreateBoard, onLogout, createDialog }: { user: User; error: string; onCreateBoard: () => void; onLogout: () => void; createDialog: React.ReactNode }) {
   return (
     <main className="empty-shell">
-      <header className="empty-topbar"><a className="brand" href="#"><span className="brand-mark"><Command size={17} /></span><span>canvas<span className="brand-light">lab</span></span></a><button className="button button-outline" onClick={onLogout}>Sign out · {user.displayName}</button></header>
+      <header className="empty-topbar"><a className="brand" href="#"><span className="brand-mark"><Command size={17} /></span><span>canvas<span className="brand-light">lab</span></span></a><div className="topbar-actions"><ThemeToggle /><button className="button button-outline" onClick={onLogout}>Sign out · {user.displayName}</button></div></header>
       <section className="empty-content"><div className="eyebrow"><span className="eyebrow-line" /> YOUR WORKSPACE</div><h1>A blank canvas<br />is a good place to start.</h1><p>Create a board to bring a thought, a team, or a tricky problem into focus.</p>{error && <div className="auth-error" role="alert">{error}</div>}<button className="auth-submit empty-create" onClick={onCreateBoard}><Plus size={16} /> Create your first board</button><div className="empty-art" aria-hidden="true"><div className="empty-grid" /><span className="empty-note note-one">A question<br />worth asking</span><span className="empty-note note-two">Start messy.<br />Get somewhere.</span><span className="empty-code">ideas.ts</span></div></section>
       {createDialog}
     </main>

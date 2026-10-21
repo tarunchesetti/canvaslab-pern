@@ -2,6 +2,11 @@
   --paper: #f5f5f1;
   --ink: #292c26;
   --line: #e7e8e2;
+  --surface: #ffffff;
+  --surface-hover: #f0f1ec;
+  --input: #ffffff;
+  --canvas: #fafaf7;
+  --muted: #74786f;
   --body: 'DM Sans', 'Segoe UI', sans-serif;
   --display: 'Manrope', 'Segoe UI', sans-serif;
   --mono: Consolas, 'Courier New', monospace;
@@ -21,3 +26,20 @@ body { min-height: 100vh; }
 button, textarea { font-family: inherit; }
 button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid #789268; outline-offset: 2px; }
 ::selection { background: #d8e1cb; color: #252920; }
+
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #171a17;
+  --ink: #edf0e8;
+  --line: #343a33;
+  --surface: #202520;
+  --surface-hover: #2c332b;
+  --input: #171c18;
+  --canvas: #1b201c;
+  --muted: #b1b8ac;
+  background: var(--paper);
+  color: var(--ink);
+}
+:root[data-theme="dark"] body { background: var(--paper); color: var(--ink); }
+:root[data-theme="dark"] ::selection { background: #53664a; color: #ffffff; }
