@@ -43,3 +43,47 @@ button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px sol
 }
 :root[data-theme="dark"] body { background: var(--paper); color: var(--ink); }
 :root[data-theme="dark"] ::selection { background: #53664a; color: #ffffff; }
+
+
+/* Sketchbook theme: warm paper, ink, and a restrained set of doodle accents. */
+:root {
+  --paper: #fbf7ee;
+  --ink: #26334a;
+  --line: #e7dfd0;
+  --surface: #fffdf8;
+  --surface-hover: #f6efdf;
+  --input: #fffdf8;
+  --canvas: #fffaf0;
+  --muted: #6e7786;
+  --accent: #f4c95d;
+  --accent-ink: #26334a;
+  --accent-blue: #6b9fe8;
+  --accent-coral: #ed8c79;
+  --accent-lilac: #b4a0e8;
+  --accent-mint: #8dcbb3;
+  --body: "Segoe UI", Arial, sans-serif;
+  --display: "Trebuchet MS", "Segoe UI", sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+:root[data-theme="dark"] {
+  --paper: #111b2b;
+  --ink: #f6f1e6;
+  --line: #2d3a50;
+  --surface: #19263a;
+  --surface-hover: #24334a;
+  --input: #142137;
+  --canvas: #101c2e;
+  --muted: #a8b4c8;
+  --accent: #f4cd68;
+  --accent-ink: #17243a;
+  --accent-blue: #83b5ff;
+  --accent-coral: #ff9b89;
+  --accent-lilac: #c2adff;
+  --accent-mint: #8ddbc0;
+  background: var(--paper);
+  color: var(--ink);
+}
+:root ::selection { background: #f8dfa0; color: #26334a; }
+:root[data-theme="dark"] ::selection { background: #495d7b; color: #fffaf0; }
+button:focus-visible, textarea:focus-visible, a:focus-visible { outline-color: var(--accent-blue); }
