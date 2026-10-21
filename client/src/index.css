@@ -4,7 +4,7 @@
   --line: #e7e8e2;
   --body: 'DM Sans', 'Segoe UI', sans-serif;
   --display: 'Manrope', 'Segoe UI', sans-serif;
-  --mono: 'DM Mono', Consolas, monospace;
+  --mono: Consolas, 'Courier New', monospace;
   font-family: var(--body);
   color: var(--ink);
   background: var(--paper);
