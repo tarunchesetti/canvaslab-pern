@@ -63,7 +63,7 @@ jobs:
             exit 1
           fi
           grep -qi 'CanvasLab' /tmp/canvaslab-editor.html
-          ROOT_STATUS=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/ -o /tmp/canvaslab-home.html)
+          ROOT_STATUS=$(curl --silent --show-error --output /tmp/canvaslab-home.html --write-out '%{http_code}' http://127.0.0.1:3000/)
           LOGIN_STATUS=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/login)
           test "$ROOT_STATUS" = "200"
           test "$LOGIN_STATUS" = "200"
