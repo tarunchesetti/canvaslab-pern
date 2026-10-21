@@ -1,52 +1,26 @@
-# CanvasLab Next.js migration and performance experiment
+# Next.js migration and performance experiment
 
-## Current status
+## Current stage: editor preview
 
-This is a parallel migration preview under `next-client/`. The existing Vite app, Netlify build configuration, Express API, Render collaboration service, and Neon database are deliberately untouched. Do not point production traffic at this preview yet.
+The Next.js App Router preview now loads the existing CanvasLab application at `/editor`. The editor is loaded with a client-only dynamic import because it depends on browser APIs, React Flow, Yjs, and the Hocuspocus WebSocket provider. This preserves the existing editor behavior while allowing the route shell to be served by Next.js.
 
-The first preview validates the Next.js App Router/build/deployment shape. It is not yet a migrated editor, so it cannot establish an editor performance improvement on its own.
+## Architecture and safety
 
-## Migration principles
+- Keep the current Vite client and its Netlify deployment unchanged while testing.
+- Keep the Render API, collaboration service, and Neon database unchanged.
+- Use same-origin `/api/*` rewrites to the existing API by default. Set `CANVASLAB_API_ORIGIN` only for a different API origin.
+- Client environment overrides are `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_COLLAB_URL`; leave them unset to use the same-origin API route and existing hosted collaboration service.
+- Do not cache authenticated API responses or board content publicly.
+- CodeMirror remains lazy-loaded within code nodes; the full editor is dynamically loaded only on the editor route.
 
-1. Keep the working Vite deployment as the control and rollback target.
-2. Port the existing app in small slices; preserve the original light neutral/green theme and all current interactions.
-3. Keep the React Flow/Yjs/Hocuspocus editor client-side. Load the editor only on board routes and only after the route shell is ready.
-4. Keep public content static (SSG); render request-specific protected data dynamically where it provides a real benefit; use ISR only for public content that can tolerate a bounded freshness window.
-5. Never cache user-specific board data publicly. Continue enforcing permissions in the Express API.
-6. Keep the current API, collaboration service, and Neon schema. Proxy `/api/*` through Next.js to preserve a same-origin browser request and session-cookie behavior.
-7. Keep all services on free tiers if the required Next.js runtime and performance are compatible.
+## Validation and rollout
 
-## Editor loading strategy
+1. CI must pass for the existing Vite client, server, and Next.js build/lint.
+2. Deploy Next.js as a separate preview using `next-client/` as the project root; do not change the existing Netlify site's build settings.
+3. Test sign-in/sign-up, password reset URL handling, board create/open/rename/delete, drawing, erasing, shapes, resizing, text/code/checklists, invitations, role permissions, remote cursors, reconnect/reload, and two-user live synchronization.
+4. Compare production builds under the same browser, device, network, and test board. Take at least five measurements per app and compare medians for FCP, LCP, CLS, total blocking time, JS transferred, editor usable time, and collaboration sync-ready time.
+5. Switch production only if feature parity is confirmed and the performance results are meaningfully better. Otherwise retain Vite and use the measurements to guide targeted optimizations.
 
-- Use a lightweight server-rendered route shell and metadata.
-- Put the React Flow canvas and browser-dependent collaboration lifecycle in a Client Component.
-- Use a loading boundary/skeleton while the editor chunk is downloaded.
-- Lazy-load secondary UI (template gallery, collaboration panel, optional code-editor features) only when opened, after verifying their current import/lifecycle behavior.
-- Avoid loading Yjs/Hocuspocus providers before a board route and authorization are ready.
-- Do not defer code required for the first usable canvas interaction; measure interaction readiness, not only the first paint.
-- Avoid broad global providers and hydration of static content that does not need client state.
+## Known limitation
 
-## Performance experiment
-
-Measure the same production-like build and same network/device conditions before and after each migration slice. Do not compare local development mode with a production build.
-
-Record at least:
-- cold navigation to a board URL and warm navigation
-- time to first contentful paint (FCP)
-- largest contentful paint (LCP), where applicable
-- total blocking time (TBT) and cumulative layout shift (CLS)
-- JavaScript transferred and initial route chunk sizes
-- time from navigation until the canvas is usable
-- time until the board is synchronized and a second collaborator is visible
-- errors, reconnection behavior, and persistence after refresh
-
-Run at least five measurements per scenario and compare medians. Record browser, device, viewport, throttling, commit SHA, and deployment URL. Treat performance as improved only if repeated measurements show a meaningful gain without regressions in collaboration or correctness.
-
-## Acceptance gates before switching production
-
-- All existing authentication, board CRUD, sharing/invitations, drawing, erasing, shapes, text, code, checklist, resizing, live cursors, presence, and persistence flows pass.
-- Direct navigation and refresh work for every route.
-- No duplicate WebSocket connections, hydration errors, blank pages, or private-data cache leaks.
-- CI production build, tests, and lint pass.
-- Netlify/Next.js runtime support, API rewrites, cookie forwarding, and free-tier limits are verified.
-- The existing Vite deployment remains available until the Next.js editor passes these gates.
+This is a migration preview, not a claim that Next.js is faster. The editor currently runs as a client-side app within the Next.js shell. Server rendering is appropriate for public, non-sensitive pages; the authenticated interactive canvas must stay client-side. The separate preview deployment and end-to-end collaboration checks are required before production use.
