@@ -24,8 +24,8 @@
 html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
 body { min-height: 100vh; }
 button, textarea { font-family: inherit; }
-button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid #789268; outline-offset: 2px; }
-::selection { background: #d8e1cb; color: #252920; }
+button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid #6b9fe8; outline-offset: 2px; }
+::selection { background: #f8dfa0; color: #26334a; }
 
 
 :root[data-theme="dark"] {
@@ -42,7 +42,7 @@ button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px sol
   color: var(--ink);
 }
 :root[data-theme="dark"] body { background: var(--paper); color: var(--ink); }
-:root[data-theme="dark"] ::selection { background: #53664a; color: #ffffff; }
+:root[data-theme="dark"] ::selection { background: #495d7b; color: #ffffff; }
 
 
 /* Sketchbook theme: warm paper, ink, and a restrained set of doodle accents. */
@@ -60,7 +60,7 @@ button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px sol
   --accent-blue: #6b9fe8;
   --accent-coral: #ed8c79;
   --accent-lilac: #b4a0e8;
-  --accent-mint: #8dcbb3;
+  --accent-mint: #c2adff;
   --body: "Segoe UI", Arial, sans-serif;
   --display: "Trebuchet MS", "Segoe UI", sans-serif;
   background: var(--paper);
@@ -80,7 +80,7 @@ button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px sol
   --accent-blue: #83b5ff;
   --accent-coral: #ff9b89;
   --accent-lilac: #c2adff;
-  --accent-mint: #8ddbc0;
+  --accent-mint: #c2adff;
   background: var(--paper);
   color: var(--ink);
 }

@@ -88,7 +88,7 @@ export default function AuthScreen({ onAuthenticated, initialError }: { onAuthen
           <div className="auth-art" aria-hidden="true">
             <div className="auth-art-grid" />
             <div className="art-note art-note-yellow">Start with<br />a question</div>
-            <div className="art-note art-note-green">What if we<br />built it live?</div>
+            <div className="art-note art-note-lilac">What if we<br />built it live?</div>
             <div className="art-code"><span>const idea =</span><br /><strong>collaboration</strong><br /><span>× curiosity</span></div>
             <div className="art-cursor"><span /> Jae</div>
           </div>
