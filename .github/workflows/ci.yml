@@ -43,4 +43,58 @@ jobs:
           node-version: 22
       - run: npm install --prefix next-client
       - run: npm run build --prefix next-client
+      - name: Smoke-test Next.js production routes
+        shell: bash
+        run: |
+          npm run start --prefix next-client > /tmp/canvaslab-next.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3000/editor -o /tmp/canvaslab-editor.html; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/canvaslab-next.log
+            echo "Next.js /editor route did not become ready"
+            exit 1
+          fi
+          grep -qi 'CanvasLab' /tmp/canvaslab-editor.html
+          ROOT_STATUS=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/)
+          test "$ROOT_STATUS" = "307" || test "$ROOT_STATUS" = "308"
+          echo "Next.js production smoke test passed: /editor returns HTML and / redirects to /editor"
+      - name: Report Next.js JavaScript chunk sizes
+        working-directory: next-client
+        run: |
+          node --input-type=module <<'NODE'
+          import { readdirSync, statSync, readFileSync } from 'node:fs'
+          import { join, relative } from 'node:path'
+          import { gzipSync } from 'node:zlib'
+
+          const root = '.next/static/chunks'
+          const files = []
+          const walk = (dir) => {
+            for (const entry of readdirSync(dir)) {
+              const path = join(dir, entry)
+              if (statSync(path).isDirectory()) walk(path)
+              else if (path.endsWith('.js')) files.push(path)
+            }
+          }
+          walk(root)
+          let rawTotal = 0
+          let gzipTotal = 0
+          for (const path of files.sort()) {
+            const bytes = readFileSync(path)
+            const gzipBytes = gzipSync(bytes).length
+            rawTotal += bytes.length
+            gzipTotal += gzipBytes
+            if (bytes.length >= 10_000) {
+              console.log(`${relative(root, path)}: ${(bytes.length / 1024).toFixed(1)} KiB raw, ${(gzipBytes / 1024).toFixed(1)} KiB gzip`)
+            }
+          }
+          console.log(`All Next.js client chunks: ${(rawTotal / 1024).toFixed(1)} KiB raw, ${(gzipTotal / 1024).toFixed(1)} KiB gzip across ${files.length} files`)
+          NODE
       - run: npm run lint --prefix next-client
