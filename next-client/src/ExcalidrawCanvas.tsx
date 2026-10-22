@@ -65,7 +65,7 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
         const label = [data.title, data.text].filter(Boolean).join('\n\n')
 
         if (node.type === 'drawing' && data.path) {
-          const points = [...data.path.matchAll(/[ML]\\s*(-?\\d+(?:\\.\\d+)?)\\s+(-?\\d+(?:\\.\\d+)?)/g)]
+          const points = [...data.path.matchAll(/[ML]\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g)]
             .map((match) => ({ x: Number(match[1]), y: Number(match[2]) }))
           for (let index = 1; index < points.length; index += 1) {
             const start = points[index - 1]
