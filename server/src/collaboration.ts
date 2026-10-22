@@ -24,12 +24,12 @@ function parseBoardId(documentName: string): string {
 export function createCollaborationServer(pool: Pool, sessionSecret: string, port: number): Server {
   return new Server({
     port,
+    // Keep the persistence window short so quick navigation/refreshes are
+    // less likely to leave recent strokes waiting in the in-memory document.
+    debounce: 500,
+    maxDebounce: 2000,
     extensions: [
       new Database({
-        // Keep the persistence window short so quick navigation/refreshes are
-        // less likely to leave recent strokes waiting in the in-memory document.
-        debounce: 500,
-        maxDebounce: 2000,
         fetch: async ({ documentName }) => {
           const boardId = parseBoardId(documentName)
           // Older boards may predate board_documents initialization. Ensure a
