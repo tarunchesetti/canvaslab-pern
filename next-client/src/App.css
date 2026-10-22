@@ -1020,7 +1020,7 @@ html[data-theme="dark"] .language-picker { background:var(--surface); border-col
 html[data-theme="dark"] .selection-toolbar select { background:var(--input); border-color:var(--line); color:var(--ink); }
 
 
-/* Excalidraw is opt-in; the existing CanvasLab canvas remains available. */
+/* Excalidraw is the active CanvasLab drawing engine. */
 .canvas-engine-toggle { align-self: center; white-space: nowrap; }
 .board-canvas-wrap.excalidraw-mode .canvas-toolbar,
 .board-canvas-wrap.excalidraw-mode .drawing-options,
@@ -1067,10 +1067,10 @@ html[data-theme="dark"] .excalidraw-host { background: #fff; color-scheme: light
   color-scheme: light;
 }
 .board-canvas-wrap.excalidraw-mode .excalidraw-host .excalidraw {
-  --color-primary: #6d7c5b;
-  --color-primary-darker: #58664a;
-  --color-primary-darkest: #435039;
-  --color-primary-light: #e9ece3;
+  --color-primary: #4b4d49;
+  --color-primary-darker: #383a36;
+  --color-primary-darkest: #292b28;
+  --color-primary-light: #e7e7e3;
   --color-surface-low: var(--surface);
   --color-surface-mid: var(--surface-hover);
   --color-surface-high: var(--surface);
@@ -1092,10 +1092,10 @@ html[data-theme="dark"] .board-canvas-wrap.excalidraw-mode .excalidraw-host {
   color-scheme: dark;
 }
 html[data-theme="dark"] .board-canvas-wrap.excalidraw-mode .excalidraw-host .excalidraw {
-  --color-primary: #aab99a;
-  --color-primary-darker: #c3d0b5;
-  --color-primary-darkest: #dce5d3;
-  --color-primary-light: #343d30;
+  --color-primary: #c4c5bf;
+  --color-primary-darker: #deded9;
+  --color-primary-darkest: #f0f0ec;
+  --color-primary-light: #3a3b38;
   --color-surface-low: var(--surface);
   --color-surface-mid: var(--surface-hover);
   --color-surface-high: var(--surface);
