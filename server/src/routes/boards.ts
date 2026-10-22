@@ -286,7 +286,7 @@ export function createBoardsRouter(pool: Pool, configuration: Environment): Rout
       [invitationId, boardId, email, parsed.data.role, requesterId, tokenHash],
     )
 
-    const invitationUrl = new URL('/', configuration.APP_BASE_URL)
+    const invitationUrl = new URL('/login', configuration.APP_BASE_URL)
     invitationUrl.searchParams.set('inviteToken', token)
     let emailSent = false
     if (isEmailConfigured(configuration)) {

@@ -117,7 +117,7 @@ export function createAuthRouter(pool: Pool, sessionSecret: string, configuratio
       [tokenId, user.id, tokenHash],
     )
 
-    const resetUrl = new URL('/', configuration.APP_BASE_URL)
+    const resetUrl = new URL('/reset-password', configuration.APP_BASE_URL)
     resetUrl.searchParams.set('resetToken', token)
 
     // In local development, expose a one-time reset link in the response so the flow

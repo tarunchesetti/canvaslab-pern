@@ -29,6 +29,10 @@ export default function App() {
     return () => { active = false }
   }, [])
 
+  const authPath = typeof window !== 'undefined' ? window.location.pathname : ''
+  if (authPath === '/reset-password' || authPath === '/forgot-password') {
+    return <AuthScreen onAuthenticated={setUser} initialError={authError} />
+  }
   if (authPending) return <StartupScreen message="Checking your session…" />
   if (!user) return <AuthScreen onAuthenticated={setUser} initialError={authError} />
   return <Suspense fallback={<StartupScreen message="Opening your workspace…" />}><WorkspaceApp user={user} onLogout={() => setUser(null)} /></Suspense>
