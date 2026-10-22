@@ -11,5 +11,5 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   // The route shell is statically generated. The existing authentication flow
   // remains client-side because it uses browser state and interactive forms.
-  return <EditorClient />
+  return <EditorClient authMode="login" />
 }
