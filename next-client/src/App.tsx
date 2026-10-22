@@ -32,10 +32,20 @@ export default function App({ authMode }: { authMode?: 'login' | 'forgot' | 'res
   const authPath = typeof window !== 'undefined' ? window.location.pathname : ''
   const hasResetToken = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('resetToken')
   const routeAuthMode = hasResetToken ? 'reset' : authMode ?? (authPath === '/reset-password' ? 'reset' : authPath === '/forgot-password' ? 'forgot' : authPath === '/login' ? 'login' : null)
+
+  function handleAuthenticated(authenticatedUser: User) {
+    setUser(authenticatedUser)
+    // /login intentionally renders the sign-in form even when a session exists.
+    // Once sign-in succeeds, leave that explicit route so the workspace can render.
+    if (authPath === '/login') {
+      window.location.replace('/')
+    }
+  }
+
   if (routeAuthMode) {
-    return <AuthScreen onAuthenticated={setUser} initialError={authError} initialMode={routeAuthMode} />
+    return <AuthScreen onAuthenticated={handleAuthenticated} initialError={authError} initialMode={routeAuthMode} />
   }
   if (authPending) return <StartupScreen message="Checking your session…" />
-  if (!user) return <AuthScreen onAuthenticated={setUser} initialError={authError} />
+  if (!user) return <AuthScreen onAuthenticated={handleAuthenticated} initialError={authError} />
   return <Suspense fallback={<StartupScreen message="Opening your workspace…" />}><WorkspaceApp user={user} onLogout={() => setUser(null)} /></Suspense>
 }
