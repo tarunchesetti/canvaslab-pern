@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { ArrowRight, Command, LoaderCircle, LogOut, Plus, Search } from 'lucide-react'
 import { ApiError, createBoard, getBoards, getCurrentUser, signOut, type Board, type User } from '../../src/api'
 import ThemeToggle from '../../src/ThemeToggle'
@@ -71,7 +72,7 @@ export default function BoardsClient() {
   return (
     <main className="boards-page">
       <header className="boards-topbar">
-        <a className="brand" href="/" aria-label="CanvasLab home"><span className="brand-mark"><Command size={17} /></span><span>canvas<span className="brand-light">lab</span></span></a>
+        <Link className="brand" href="/" aria-label="CanvasLab home"><span className="brand-mark"><Command size={17} /></span><span>canvas<span className="brand-light">lab</span></span></Link>
         <div className="boards-account"><ThemeToggle />{user && <span className="boards-user">{user.displayName}</span>}<button className="button button-outline boards-signout" onClick={() => void handleLogout()}><LogOut size={15} /> Sign out</button></div>
       </header>
       <section className="boards-content">
