@@ -37,7 +37,95 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
     addFiles: (files: never[]) => void
   } | null>(null)
   const applyingRemoteRef = useRef(false)
+  const migrationDocumentRef = useRef<Yjs.Doc | null>(null)
   const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!document || !ready || !apiRef.current || migrationDocumentRef.current === document) return
+    migrationDocumentRef.current = document
+
+    let cancelled = false
+    async function migrateLegacyBoard() {
+      const sharedElements = document!.getMap<string>('excalidraw:elements')
+      const metadata = document!.getMap<string>('excalidraw:meta')
+      if (sharedElements.size > 0 || metadata.get('legacyNodesMigrated') === 'v1') return
+
+      const legacyNodesMap = document!.getMap<Yjs.Map<unknown>>('nodes')
+      const { readNodesFromDocument } = await import('./collaboration-state')
+      const legacyNodes = readNodesFromDocument(legacyNodesMap)
+      if (legacyNodes.length === 0 || cancelled) return
+
+      const skeletons: Record<string, unknown>[] = []
+      for (const node of legacyNodes) {
+        const data = node.data
+        const x = node.position.x
+        const y = node.position.y
+        const width = Math.max(1, data.width ?? 240)
+        const height = Math.max(1, data.height ?? 160)
+        const label = [data.title, data.text].filter(Boolean).join('\n\n')
+
+        if (node.type === 'drawing' && data.path) {
+          const points = [...data.path.matchAll(/[ML]\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g)]
+            .map((match) => ({ x: Number(match[1]), y: Number(match[2]) }))
+          for (let index = 1; index < points.length; index += 1) {
+            const start = points[index - 1]
+            const end = points[index]
+            skeletons.push({
+              type: 'line',
+              x: x + start.x,
+              y: y + start.y,
+              width: end.x - start.x,
+              height: end.y - start.y,
+              strokeColor: data.strokeColor ?? '#343830',
+              strokeWidth: data.strokeWidth ?? 2,
+            })
+          }
+          continue
+        }
+
+        if (node.type === 'shape') {
+          skeletons.push({
+            type: data.shape === 'circle' ? 'ellipse' : data.shape === 'diamond' ? 'diamond' : 'rectangle',
+            x, y, width, height,
+            backgroundColor: data.backgroundColor ?? '#ffffff',
+            strokeColor: data.textColor ?? '#343830',
+            label: { text: label, fontSize: data.fontSize ?? 16 },
+          })
+        } else if (node.type === 'note') {
+          skeletons.push({
+            type: 'stickynote', x, y, width, height,
+            backgroundColor: data.backgroundColor ?? '#fff3bf',
+            label: { text: label, fontSize: data.fontSize ?? 16, strokeColor: data.textColor ?? '#343830' },
+          })
+        } else {
+          skeletons.push({
+            type: 'text', x, y, text: label || ' ',
+            fontSize: data.fontSize ?? (node.type === 'code' ? 14 : 18),
+            strokeColor: data.textColor ?? '#343830',
+          })
+        }
+      }
+
+      if (cancelled || skeletons.length === 0 || sharedElements.size > 0) return
+      const { convertToExcalidrawElements } = await import('@excalidraw/excalidraw')
+      const elements = convertToExcalidrawElements(skeletons as never[], { regenerateIds: false })
+      if (cancelled || sharedElements.size > 0) return
+
+      document!.transact(() => {
+        for (const element of elements) {
+          sharedElements.set(element.id, JSON.stringify(element))
+        }
+        metadata.set('legacyNodesMigrated', 'v1')
+      })
+    }
+
+    void migrateLegacyBoard().catch((error: unknown) => {
+      console.error('Could not migrate legacy CanvasLab board to Excalidraw', error)
+      migrationDocumentRef.current = null
+    })
+
+    return () => { cancelled = true }
+  }, [document, ready])
 
   const applySharedScene = useCallback(() => {
     if (!document) return
