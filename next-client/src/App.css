@@ -179,7 +179,7 @@
 .button-dark { background: #292c27; color: white; }
 .button-dark:hover { background: #41453d; }
 
-.board-heading { display: flex; min-height: 142px; align-items: center; justify-content: space-between; gap: 20px; padding: 24px 36px 20px; }
+.board-heading { display: flex; min-height: 96px; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 28px; }
 .eyebrow { display: flex; align-items: center; gap: 7px; color: #8a8c85; font-size: 9px; font-weight: 700; letter-spacing: 0.8px; }
 .eyebrow-line { width: 14px; height: 1px; background: #9aa18d; }
 .heading-dot { margin: 0 1px; color: #c2c3bc; }
@@ -216,7 +216,7 @@
 .tool-button:disabled { cursor: not-allowed; opacity: 0.42; }
 .tool-selected { background: #e9ece3; color: #454f3b; }
 .tool-selected:hover { background: #e2e6da; }
-.canvas-live { position: absolute; z-index: 40; top: 14px; right: 16px; display: flex; align-items: flex-start; gap: 8px; max-width: min(300px, calc(100% - 32px)); padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); box-shadow: 0 2px 8px #24271c0c; font-size: 10px; }
+.canvas-live { position: relative; z-index: 2; display: flex; flex: 0 1 280px; align-items: flex-start; gap: 8px; width: min(280px, 38%); min-width: 190px; box-sizing: border-box; padding: 10px 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--muted); box-shadow: 0 2px 8px #24271c0c; font-size: 10px; }
 .canvas-live .live-indicator { flex: 0 0 6px; margin-top: 4px; }
 .canvas-live-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
 .canvas-live-copy strong { color: var(--ink); font-size: 10px; font-weight: 650; }
@@ -274,13 +274,14 @@
   .invite-button { width: 33px; padding: 0; font-size: 0; }
   .invite-button svg { width: 16px; height: 16px; }
   .button-dark { padding: 0 9px; }
-  .board-heading { min-height: 126px; align-items: flex-start; flex-direction: column; justify-content: center; gap: 10px; padding: 18px 18px; }
+  .board-heading { min-height: 0; align-items: stretch; flex-direction: column; justify-content: center; gap: 10px; padding: 12px 14px; }
+  .board-heading .canvas-live { width: 100%; min-width: 0; max-width: none; flex: 0 0 auto; }
   .board-heading h1 { font-size: 23px; }
   .board-status { font-size: 9px; }
   .board-canvas-wrap { min-height: 360px; }
   .canvas-toolbar { top: 12px; left: 11px; gap: 1px; padding: 4px; }
   .tool-button { width: 29px; height: 30px; }
-  .canvas-live { top: 10px; right: 10px; }
+  .canvas-live { top: auto; right: auto; }
   .canvas-hint { left: 12px; bottom: 13px; transform: none; font-size: 8px; }
   .minimap-preview { right: 10px; bottom: 41px; transform: scale(0.82); transform-origin: right bottom; }
   .workspace-footer { gap: 9px; padding: 0 10px; }
@@ -1037,8 +1038,8 @@ html[data-theme="dark"] .selection-toolbar select { background:var(--input); bor
 .excalidraw-host {
   position: relative;
   width: 100%;
-  height: min(72vh, 760px);
-  min-height: 500px;
+  height: min(84vh, 980px);
+  min-height: 620px;
   overflow: hidden;
   background: #fff;
   border-radius: 12px;
