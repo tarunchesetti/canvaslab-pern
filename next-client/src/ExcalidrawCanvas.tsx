@@ -86,7 +86,7 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
     }
   }, [applySharedScene, document])
 
-  const handleChange = useCallback((elements: readonly SceneElement[], _appState: unknown, files: Record<string, unknown>) => {
+  const handleChange = useCallback((elements: readonly { id: string; index?: string }[], _appState: unknown, files: Record<string, unknown>) => {
     if (!document || !canEdit || applyingRemoteRef.current) return
 
     const sharedElements = document.getMap<string>('excalidraw:elements')
