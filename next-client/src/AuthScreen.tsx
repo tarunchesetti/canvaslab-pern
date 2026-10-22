@@ -7,18 +7,18 @@ import { passwordsMatch } from './auth-validation'
 import ThemeToggle from './ThemeToggle'
 import './App.css'
 
-export default function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user: User) => void; initialError: string }) {
+export default function AuthScreen({ onAuthenticated, initialError, initialMode: forcedInitialMode }: { onAuthenticated: (user: User) => void; initialError: string; initialMode?: 'login' | 'forgot' | 'reset' }) {
   const currentPath = window.location.pathname
-  const resetToken = currentPath === '/reset-password' ? new URLSearchParams(window.location.search).get('resetToken') : null
-  const initialMode: 'login' | 'register' | 'forgot' | 'reset' = currentPath === '/reset-password' ? 'reset' : currentPath === '/forgot-password' ? 'forgot' : 'login'
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(initialMode)
+  const resolvedInitialMode: 'login' | 'register' | 'forgot' | 'reset' = forcedInitialMode ?? (currentPath === '/reset-password' ? 'reset' : currentPath === '/forgot-password' ? 'forgot' : 'login')
+  const resetToken = resolvedInitialMode === 'reset' ? new URLSearchParams(window.location.search).get('resetToken') : null
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(resolvedInitialMode)
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordVisible, setPasswordVisible] = useState(false)
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
-  const [error, setError] = useState(initialError || (initialMode === 'reset' && !resetToken ? 'This password reset link is missing or invalid.' : ''))
+  const [error, setError] = useState(initialError || (resolvedInitialMode === 'reset' && !resetToken ? 'This password reset link is missing or invalid.' : ''))
   const [notice, setNotice] = useState(new URLSearchParams(window.location.search).get('passwordReset') === 'success' ? 'Password reset successfully. Please sign in with your new password.' : '')
   const [resetUrl, setResetUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import './landing.css'
+import ResetTokenRedirect from './ResetTokenRedirect'
 
 export const dynamic = 'force-static'
 
@@ -17,6 +18,7 @@ const capabilities = [
 export default function HomePage() {
   return (
     <main className="landing-page">
+      <ResetTokenRedirect />
       <header className="landing-nav">
         <Link className="landing-brand" href="/" aria-label="CanvasLab home"><span className="landing-brand-mark">C</span><span>CanvasLab</span></Link>
         <nav className="landing-nav-actions" aria-label="Main navigation">

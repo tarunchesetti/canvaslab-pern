@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 }
 
 export default function ForgotPasswordPage() {
-  return <EditorClient />
+  return <EditorClient authMode="forgot" />
 }
