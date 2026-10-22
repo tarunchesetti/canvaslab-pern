@@ -3,6 +3,7 @@ import '../src/App.css'
 import '../src/CollaborationPanel.css'
 import '../src/TemplateGallery.css'
 import '@xyflow/react/dist/style.css'
+import '@excalidraw/excalidraw/index.css'
 import './globals.css'
 
 export const metadata: Metadata = {
