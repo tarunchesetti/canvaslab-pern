@@ -1049,3 +1049,65 @@ html[data-theme="dark"] .selection-toolbar select { background:var(--input); bor
   font-size: 13px;
 }
 html[data-theme="dark"] .excalidraw-host { background: #fff; color-scheme: light; }
+
+
+/* Unified CanvasLab + Excalidraw workspace styling */
+.board-canvas-wrap.excalidraw-mode {
+  padding: 0;
+  border-top-color: var(--line);
+  background: var(--canvas);
+}
+.board-canvas-wrap.excalidraw-mode .excalidraw-host {
+  height: min(72vh, 760px);
+  min-height: 500px;
+  border: 0;
+  border-radius: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  color-scheme: light;
+}
+.board-canvas-wrap.excalidraw-mode .excalidraw-host .excalidraw {
+  --color-primary: #6d7c5b;
+  --color-primary-darker: #58664a;
+  --color-primary-darkest: #435039;
+  --color-primary-light: #e9ece3;
+  --color-surface-low: var(--surface);
+  --color-surface-mid: var(--surface-hover);
+  --color-surface-high: var(--surface);
+  --color-on-surface: var(--ink);
+  --color-on-surface-variant: var(--muted);
+  --color-border-outline: var(--line);
+  --color-border-outline-variant: var(--line);
+  font-family: var(--body);
+}
+.board-canvas-wrap.excalidraw-mode .excalidraw-host .Island,
+.board-canvas-wrap.excalidraw-mode .excalidraw-host .App-toolbar,
+.board-canvas-wrap.excalidraw-mode .excalidraw-host .layer-ui__wrapper__top-right,
+.board-canvas-wrap.excalidraw-mode .excalidraw-host .footer,
+.board-canvas-wrap.excalidraw-mode .excalidraw-host .help-icon {
+  font-family: var(--body);
+}
+html[data-theme="dark"] .board-canvas-wrap.excalidraw-mode .excalidraw-host {
+  background: var(--canvas);
+  color-scheme: dark;
+}
+html[data-theme="dark"] .board-canvas-wrap.excalidraw-mode .excalidraw-host .excalidraw {
+  --color-primary: #aab99a;
+  --color-primary-darker: #c3d0b5;
+  --color-primary-darkest: #dce5d3;
+  --color-primary-light: #343d30;
+  --color-surface-low: var(--surface);
+  --color-surface-mid: var(--surface-hover);
+  --color-surface-high: var(--surface);
+  --color-on-surface: var(--ink);
+  --color-on-surface-variant: var(--muted);
+  --color-border-outline: var(--line);
+  --color-border-outline-variant: var(--line);
+}
+html[data-theme="dark"] .board-canvas-wrap.excalidraw-mode .excalidraw-host .excalidraw .Island,
+html[data-theme="dark"] .board-canvas-wrap.excalidraw-mode .excalidraw-host .excalidraw .App-toolbar,
+html[data-theme="dark"] .board-canvas-wrap.excalidraw-mode .excalidraw-host .excalidraw .layer-ui__wrapper__top-right {
+  background-color: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
