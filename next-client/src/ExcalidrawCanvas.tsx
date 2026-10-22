@@ -40,7 +40,7 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
   const migrationDocumentRef = useRef<Yjs.Doc | null>(null)
   const [ready, setReady] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+    typeof window !== 'undefined' && window.document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   )
 
   useEffect(() => {
