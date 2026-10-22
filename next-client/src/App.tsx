@@ -11,7 +11,7 @@ function StartupScreen({ message }: { message: string }) {
   return <main className="startup-screen"><span className="brand-mark"><Command size={17} /></span><LoaderCircle className="loading-icon" size={19} /><p>{message}</p></main>
 }
 
-export default function App() {
+export default function App({ authMode }: { authMode?: 'login' | 'forgot' | 'reset' }) {
   const [user, setUser] = useState<User | null>(null)
   const [authPending, setAuthPending] = useState(true)
   const [authError, setAuthError] = useState('')
@@ -30,8 +30,9 @@ export default function App() {
   }, [])
 
   const authPath = typeof window !== 'undefined' ? window.location.pathname : ''
-  if (authPath === '/reset-password' || authPath === '/forgot-password') {
-    return <AuthScreen onAuthenticated={setUser} initialError={authError} />
+  const routeAuthMode = authMode ?? (authPath === '/reset-password' ? 'reset' : authPath === '/forgot-password' ? 'forgot' : authPath === '/login' ? 'login' : null)
+  if (routeAuthMode) {
+    return <AuthScreen onAuthenticated={setUser} initialError={authError} initialMode={routeAuthMode} />
   }
   if (authPending) return <StartupScreen message="Checking your session…" />
   if (!user) return <AuthScreen onAuthenticated={setUser} initialError={authError} />
