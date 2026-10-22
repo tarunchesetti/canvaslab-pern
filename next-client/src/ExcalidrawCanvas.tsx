@@ -39,6 +39,46 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
   const applyingRemoteRef = useRef(false)
   const migrationDocumentRef = useRef<Yjs.Doc | null>(null)
   const [ready, setReady] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    typeof window !== 'undefined' && window.document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+  )
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    const syncTheme = () => setTheme(root.dataset.theme === 'dark' ? 'dark' : 'light')
+    syncTheme()
+    const observer = new MutationObserver(syncTheme)
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
+
+  const applySharedScene = useCallback(() => {
+    if (!document) return
+    const sharedElements = document.getMap<string>('excalidraw:elements')
+    const sharedFiles = document.getMap<string>('excalidraw:files')
+    const elements = Array.from(sharedElements.values())
+      .map(parseSceneValue)
+      .filter((element): element is SceneElement => element !== null)
+      .sort((first, second) => String(first.index ?? '').localeCompare(String(second.index ?? '')))
+    const files = Array.from(sharedFiles.values()).flatMap((value) => {
+      try {
+        return [JSON.parse(value) as never]
+      } catch {
+        return []
+      }
+    })
+
+    applyingRemoteRef.current = true
+    apiRef.current?.updateScene({
+      elements: elements as never[],
+      appState: { viewModeEnabled: !canEdit },
+    })
+    if (files.length) apiRef.current?.addFiles(files)
+    setReady(true)
+    queueMicrotask(() => {
+      applyingRemoteRef.current = false
+    })
+  }, [canEdit, document])
 
   useEffect(() => {
     if (!document || !ready || !apiRef.current || migrationDocumentRef.current === document) return
@@ -117,6 +157,9 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
         }
         metadata.set('legacyNodesMigrated', 'v1')
       })
+      // This was a local Yjs transaction, so the observer intentionally skips it.
+      // Apply the migrated scene once after writing it so legacy boards appear immediately.
+      applySharedScene()
     }
 
     void migrateLegacyBoard().catch((error: unknown) => {
@@ -125,35 +168,7 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
     })
 
     return () => { cancelled = true }
-  }, [document, ready])
-
-  const applySharedScene = useCallback(() => {
-    if (!document) return
-    const sharedElements = document.getMap<string>('excalidraw:elements')
-    const sharedFiles = document.getMap<string>('excalidraw:files')
-    const elements = Array.from(sharedElements.values())
-      .map(parseSceneValue)
-      .filter((element): element is SceneElement => element !== null)
-      .sort((first, second) => String(first.index ?? '').localeCompare(String(second.index ?? '')))
-    const files = Array.from(sharedFiles.values()).flatMap((value) => {
-      try {
-        return [JSON.parse(value) as never]
-      } catch {
-        return []
-      }
-    })
-
-    applyingRemoteRef.current = true
-    apiRef.current?.updateScene({
-      elements: elements as never[],
-      appState: { viewModeEnabled: !canEdit },
-    })
-    if (files.length) apiRef.current?.addFiles(files)
-    setReady(true)
-    queueMicrotask(() => {
-      applyingRemoteRef.current = false
-    })
-  }, [canEdit, document])
+  }, [applySharedScene, document, ready])
 
   useEffect(() => {
     if (!document) {
@@ -163,7 +178,12 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
 
     const sharedElements = document.getMap<string>('excalidraw:elements')
     const sharedFiles = document.getMap<string>('excalidraw:files')
-    const onSharedChange = () => applySharedScene()
+    // Local edits are already rendered by Excalidraw. Re-applying the shared scene
+    // for every local pointer update interrupts in-progress strokes and leaves a dot.
+    // Only apply changes that arrived from another Yjs client.
+    const onSharedChange = (_event: unknown, transaction: Yjs.Transaction) => {
+      if (!transaction.local) applySharedScene()
+    }
     sharedElements.observe(onSharedChange)
     sharedFiles.observe(onSharedChange)
     applySharedScene()
@@ -205,8 +225,9 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
             applySharedScene()
           }}
           viewModeEnabled={!canEdit}
+          theme={theme}
           onChange={handleChange}
-          initialData={{ appState: { viewModeEnabled: !canEdit } }}
+          initialData={{ appState: { viewModeEnabled: !canEdit, viewBackgroundColor: theme === 'dark' ? '#1b201c' : '#fafaf7' } }}
         />
       )}
       {document && !ready && <div className="excalidraw-loading" role="status">Loading saved drawing…</div>}
