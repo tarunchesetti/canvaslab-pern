@@ -26,8 +26,20 @@ export function createCollaborationServer(pool: Pool, sessionSecret: string, por
     port,
     extensions: [
       new Database({
+        // Keep the persistence window short so quick navigation/refreshes are
+        // less likely to leave recent strokes waiting in the in-memory document.
+        debounce: 500,
+        maxDebounce: 2000,
         fetch: async ({ documentName }) => {
           const boardId = parseBoardId(documentName)
+          // Older boards may predate board_documents initialization. Ensure a
+          // durable document row exists before asking Hocuspocus to load it.
+          await pool.query(
+            `INSERT INTO board_documents (board_id)
+             SELECT id FROM boards WHERE id = $1
+             ON CONFLICT (board_id) DO NOTHING`,
+            [boardId],
+          )
           const result = await pool.query<SnapshotRow>(
             `SELECT d.snapshot
              FROM board_documents d
@@ -45,9 +57,12 @@ export function createCollaborationServer(pool: Pool, sessionSecret: string, por
           try {
             await client.query('BEGIN')
             const saved = await client.query(
-              `UPDATE board_documents
-               SET snapshot = $1, version = version + 1, updated_at = NOW()
-               WHERE board_id = $2
+              `INSERT INTO board_documents (board_id, snapshot, version, updated_at)
+               SELECT id, $1, 1, NOW() FROM boards WHERE id = $2
+               ON CONFLICT (board_id) DO UPDATE
+               SET snapshot = EXCLUDED.snapshot,
+                   version = board_documents.version + 1,
+                   updated_at = NOW()
                RETURNING board_id`,
               [Buffer.from(state), boardId],
             )
