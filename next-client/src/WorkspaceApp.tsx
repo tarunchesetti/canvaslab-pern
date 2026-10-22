@@ -666,7 +666,7 @@ function BoardCanvas({
   const canEdit = board.role !== 'viewer'
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([])
   const [activeTool, setActiveTool] = useState('select')
-  const [useExcalidraw, setUseExcalidraw] = useState(false)
+  const useExcalidraw = true
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [drawingColor, setDrawingColor] = useState('#26352a')
   const [drawingWidth, setDrawingWidth] = useState(3)
@@ -1031,12 +1031,11 @@ function BoardCanvas({
 
         <div className="board-heading">
           <div><div className="eyebrow"><span className="eyebrow-line" /> CANVAS BOARD <span className="heading-dot">·</span> {new Date(board.updated_at).toLocaleDateString()}</div><div className="board-title-line"><h1>{board.title}</h1><button className="title-chevron" aria-label="Board options" aria-expanded={showBoardMenu} onClick={() => setShowBoardMenu((visible) => !visible)}><ChevronDown size={16} /></button>{showBoardMenu && <div className="board-options-menu" role="menu">{canEdit && <button role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('rename') }}>Rename board</button>}{board.role === 'owner' && <button className="menu-danger" role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('delete') }}>Delete board</button>}</div>}</div><p>Shape the next version of how we think together.</p></div>
-          <button type="button" className="button button-outline canvas-engine-toggle" onClick={() => setUseExcalidraw((current) => !current)}>{useExcalidraw ? "Use CanvasLab canvas" : "Try Excalidraw"}</button>
           <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
         <div className={`board-canvas-wrap ${canInteract && ['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool) ? 'drawing-mode' : ''} ${useExcalidraw ? 'excalidraw-mode' : ''}`} ref={canvasWrapperRef}>
-          <div className="canvas-toolbar" aria-label="Canvas tools">
+          {!useExcalidraw && <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <button className={`tool-button ${activeTool === 'pen' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Pen: draw freehand" aria-label="Pen tool" onClick={() => setActiveTool('pen')}><Pencil size={17} /></button>
             <button className={`tool-button ${activeTool === 'brush' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Brush: thicker strokes" aria-label="Brush tool" onClick={() => setActiveTool('brush')}><Paintbrush size={17} /></button>
@@ -1050,12 +1049,12 @@ function BoardCanvas({
             <button className="tool-button" disabled={!canInteract} title="Add diamond" aria-label="Add diamond" onClick={() => addNode('shape', 'diamond')}><Diamond size={17} /></button>
             <button className="tool-button" disabled={!canInteract} title="Add checklist" aria-label="Add checklist" onClick={() => { setActiveTool('checklist'); addNode('checklist') }}><ListChecks size={17} /></button>
             <button className="template-tool-button" disabled={!canInteract} title="Browse templates" aria-label="Browse templates" onClick={() => setShowTemplateGallery(true)}><Copy size={15} /><span>Templates</span></button>
-          </div>
-          {['pen', 'brush', 'highlighter'].includes(activeTool) && canInteract && <div className="drawing-options" aria-label="Drawing options">
+          </div>}
+          {!useExcalidraw && ['pen', 'brush', 'highlighter'].includes(activeTool) && canInteract && <div className="drawing-options" aria-label="Drawing options">
             <label>Color <input aria-label="Drawing color" type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} /></label>
             <label>Thickness <input aria-label="Drawing thickness" type="range" min="1" max="12" value={drawingWidth} onChange={(event) => setDrawingWidth(Number(event.target.value))} /><span>{drawingWidth}px</span></label>
           </div>}
-          {selectedNode && canInteract && <div className="selection-toolbar" aria-label="Selected object formatting">
+          {!useExcalidraw && selectedNode && canInteract && <div className="selection-toolbar" aria-label="Selected object formatting">
             <label title="Background color"><span>Fill</span><input aria-label="Fill color" type="color" value={selectedNode.data.backgroundColor ?? (selectedNode.type === 'note' ? '#fff1b9' : '#ffffff')} onChange={(event) => updateSelectedNode({ backgroundColor: event.target.value, tone: undefined })} /></label>
             <label title="Text color"><span>Text</span><input aria-label="Text color" type="color" value={selectedNode.data.textColor ?? '#343830'} onChange={(event) => updateSelectedNode({ textColor: event.target.value })} /></label>
             <label title="Font size"><span>Size</span><select aria-label="Font size" value={selectedNode.data.fontSize ?? (selectedNode.type === 'text' ? 15 : 12)} onChange={(event) => updateSelectedNode({ fontSize: Number(event.target.value) })}><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16">16</option><option value="20">20</option><option value="24">24</option><option value="32">32</option></select></label>
@@ -1068,7 +1067,7 @@ function BoardCanvas({
 
           <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
           {useExcalidraw && <Suspense fallback={<div className="excalidraw-loading">Opening drawing canvas…</div>}><ExcalidrawCanvas document={documentRef.current} canEdit={canInteract} /></Suspense>}
-          <ReactFlow
+          {!useExcalidraw && <ReactFlow
             onInit={(instance) => { screenToFlowPositionRef.current = instance.screenToFlowPosition }}
             nodes={nodes}
             edges={[]}
@@ -1089,8 +1088,8 @@ function BoardCanvas({
             <DrawingSurface activeTool={canInteract ? activeTool : 'select'} color={drawingColor} strokeWidth={drawingWidth} onFinish={finishDrawing} onEraseAt={(point) => setNodes((current) => current.filter((node) => { if (node.type !== 'drawing') return true; const width = node.data.width ?? 1; const height = node.data.height ?? 1; return point.x < node.position.x - 14 || point.x > node.position.x + width + 14 || point.y < node.position.y - 14 || point.y > node.position.y + height + 14 }))} />
             <Controls position="bottom-right" showInteractive={false} showFitView={false} />
             <CollaborationCursorLayer providerRef={providerRef} wrapperRef={canvasWrapperRef} cursors={remoteCursors} />
-          </ReactFlow>
-          <div className="canvas-hint"><MousePointer2 size={13} /> Drag anything to make room for a new idea</div>
+          </ReactFlow>}
+          {!useExcalidraw && <div className="canvas-hint"><MousePointer2 size={13} /> Drag anything to make room for a new idea</div>}
         </div>
 
         
