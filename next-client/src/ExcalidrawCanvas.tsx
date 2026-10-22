@@ -52,6 +52,34 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
     return () => observer.disconnect()
   }, [])
 
+  const applySharedScene = useCallback(() => {
+    if (!document) return
+    const sharedElements = document.getMap<string>('excalidraw:elements')
+    const sharedFiles = document.getMap<string>('excalidraw:files')
+    const elements = Array.from(sharedElements.values())
+      .map(parseSceneValue)
+      .filter((element): element is SceneElement => element !== null)
+      .sort((first, second) => String(first.index ?? '').localeCompare(String(second.index ?? '')))
+    const files = Array.from(sharedFiles.values()).flatMap((value) => {
+      try {
+        return [JSON.parse(value) as never]
+      } catch {
+        return []
+      }
+    })
+
+    applyingRemoteRef.current = true
+    apiRef.current?.updateScene({
+      elements: elements as never[],
+      appState: { viewModeEnabled: !canEdit },
+    })
+    if (files.length) apiRef.current?.addFiles(files)
+    setReady(true)
+    queueMicrotask(() => {
+      applyingRemoteRef.current = false
+    })
+  }, [canEdit, document])
+
   useEffect(() => {
     if (!document || !ready || !apiRef.current || migrationDocumentRef.current === document) return
     migrationDocumentRef.current = document
@@ -141,34 +169,6 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
 
     return () => { cancelled = true }
   }, [applySharedScene, document, ready])
-
-  const applySharedScene = useCallback(() => {
-    if (!document) return
-    const sharedElements = document.getMap<string>('excalidraw:elements')
-    const sharedFiles = document.getMap<string>('excalidraw:files')
-    const elements = Array.from(sharedElements.values())
-      .map(parseSceneValue)
-      .filter((element): element is SceneElement => element !== null)
-      .sort((first, second) => String(first.index ?? '').localeCompare(String(second.index ?? '')))
-    const files = Array.from(sharedFiles.values()).flatMap((value) => {
-      try {
-        return [JSON.parse(value) as never]
-      } catch {
-        return []
-      }
-    })
-
-    applyingRemoteRef.current = true
-    apiRef.current?.updateScene({
-      elements: elements as never[],
-      appState: { viewModeEnabled: !canEdit },
-    })
-    if (files.length) apiRef.current?.addFiles(files)
-    setReady(true)
-    queueMicrotask(() => {
-      applyingRemoteRef.current = false
-    })
-  }, [canEdit, document])
 
   useEffect(() => {
     if (!document) {
