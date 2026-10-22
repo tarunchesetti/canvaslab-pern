@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic'
 
+type AuthMode = 'login' | 'forgot' | 'reset'
+
 const CanvasLabApp = dynamic(() => import('../../src/App'), {
   ssr: false,
   loading: () => (
@@ -12,6 +14,6 @@ const CanvasLabApp = dynamic(() => import('../../src/App'), {
   ),
 })
 
-export default function EditorClient() {
-  return <CanvasLabApp />
+export default function EditorClient({ authMode }: { authMode?: AuthMode }) {
+  return <CanvasLabApp authMode={authMode} />
 }
