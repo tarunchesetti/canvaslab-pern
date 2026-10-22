@@ -39,6 +39,18 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
   const applyingRemoteRef = useRef(false)
   const migrationDocumentRef = useRef<Yjs.Doc | null>(null)
   const [ready, setReady] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+  )
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    const syncTheme = () => setTheme(root.dataset.theme === 'dark' ? 'dark' : 'light')
+    syncTheme()
+    const observer = new MutationObserver(syncTheme)
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!document || !ready || !apiRef.current || migrationDocumentRef.current === document) return
@@ -213,8 +225,9 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
             applySharedScene()
           }}
           viewModeEnabled={!canEdit}
+          theme={theme}
           onChange={handleChange}
-          initialData={{ appState: { viewModeEnabled: !canEdit } }}
+          initialData={{ appState: { viewModeEnabled: !canEdit, viewBackgroundColor: theme === 'dark' ? '#1b201c' : '#fafaf7' } }}
         />
       )}
       {document && !ready && <div className="excalidraw-loading" role="status">Loading saved drawing…</div>}
