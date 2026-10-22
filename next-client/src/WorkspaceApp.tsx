@@ -112,6 +112,7 @@ function CollaborationCursorLayer({ providerRef, wrapperRef, cursors }: {
 }
 
 const CodeEditor = lazy(() => import('./CodeEditor'))
+const ExcalidrawCanvas = lazy(() => import('./ExcalidrawCanvas'))
 
 function NoteCard({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow<CanvasNode>()
@@ -665,6 +666,7 @@ function BoardCanvas({
   const canEdit = board.role !== 'viewer'
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([])
   const [activeTool, setActiveTool] = useState('select')
+  const [useExcalidraw, setUseExcalidraw] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [drawingColor, setDrawingColor] = useState('#26352a')
   const [drawingWidth, setDrawingWidth] = useState(3)
@@ -1029,10 +1031,11 @@ function BoardCanvas({
 
         <div className="board-heading">
           <div><div className="eyebrow"><span className="eyebrow-line" /> CANVAS BOARD <span className="heading-dot">·</span> {new Date(board.updated_at).toLocaleDateString()}</div><div className="board-title-line"><h1>{board.title}</h1><button className="title-chevron" aria-label="Board options" aria-expanded={showBoardMenu} onClick={() => setShowBoardMenu((visible) => !visible)}><ChevronDown size={16} /></button>{showBoardMenu && <div className="board-options-menu" role="menu">{canEdit && <button role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('rename') }}>Rename board</button>}{board.role === 'owner' && <button className="menu-danger" role="menuitem" onClick={() => { setShowBoardMenu(false); onEditBoard('delete') }}>Delete board</button>}</div>}</div><p>Shape the next version of how we think together.</p></div>
+          <button type="button" className="button button-outline canvas-engine-toggle" onClick={() => setUseExcalidraw((current) => !current)}>{useExcalidraw ? "Use CanvasLab canvas" : "Try Excalidraw"}</button>
           <div className="board-status" title={collaborationError || undefined}><span className={`status-pulse ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /> {collaborationStatus === 'connected' ? canEdit ? 'Live sync' : 'Read-only live' : collaborationStatus === 'offline' ? 'Reconnect needed' : 'Connecting'} <span className="status-divider" /> <Activity size={14} /> {collaborationError || (collaborationStatus === 'connected' ? 'All changes synced' : 'Waiting for board sync')}</div>
         </div>
 
-        <div className={`board-canvas-wrap ${canInteract && ['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool) ? 'drawing-mode' : ''}`} ref={canvasWrapperRef}>
+        <div className={`board-canvas-wrap ${canInteract && ['pen', 'brush', 'highlighter', 'eraser'].includes(activeTool) ? 'drawing-mode' : ''} ${useExcalidraw ? 'excalidraw-mode' : ''}`} ref={canvasWrapperRef}>
           <div className="canvas-toolbar" aria-label="Canvas tools">
             <button className={`tool-button ${activeTool === 'select' ? 'tool-selected' : ''}`} title="Select and move" aria-label="Select and move" onClick={() => setActiveTool('select')}><MousePointer2 size={17} /></button>
             <button className={`tool-button ${activeTool === 'pen' ? 'tool-selected' : ''}`} disabled={!canInteract} title="Pen: draw freehand" aria-label="Pen tool" onClick={() => setActiveTool('pen')}><Pencil size={17} /></button>
@@ -1064,6 +1067,7 @@ function BoardCanvas({
           </div>}
 
           <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
+          {useExcalidraw && <Suspense fallback={<div className="excalidraw-loading">Opening drawing canvas…</div>}><ExcalidrawCanvas document={documentRef.current} canEdit={canInteract} /></Suspense>}
           <ReactFlow
             onInit={(instance) => { screenToFlowPositionRef.current = instance.screenToFlowPosition }}
             nodes={nodes}

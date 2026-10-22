@@ -1018,3 +1018,34 @@ html[data-theme="dark"] .board-action-form label, html[data-theme="dark"] .membe
 html[data-theme="dark"] .auth-error, html[data-theme="dark"] .auth-notice { color:var(--ink); }
 html[data-theme="dark"] .language-picker { background:var(--surface); border-color:var(--line); color:var(--ink); }
 html[data-theme="dark"] .selection-toolbar select { background:var(--input); border-color:var(--line); color:var(--ink); }
+
+
+/* Excalidraw is opt-in; the existing CanvasLab canvas remains available. */
+.canvas-engine-toggle { align-self: center; white-space: nowrap; }
+.board-canvas-wrap.excalidraw-mode .canvas-toolbar,
+.board-canvas-wrap.excalidraw-mode .drawing-options,
+.board-canvas-wrap.excalidraw-mode .selection-toolbar,
+.board-canvas-wrap.excalidraw-mode .canvas-live,
+.board-canvas-wrap.excalidraw-mode .canvas-hint,
+.board-canvas-wrap.excalidraw-mode > .react-flow {
+  display: none !important;
+}
+.excalidraw-host {
+  position: relative;
+  width: 100%;
+  height: min(72vh, 760px);
+  min-height: 500px;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 12px;
+}
+.excalidraw-host .excalidraw { height: 100%; }
+.excalidraw-loading {
+  display: grid;
+  min-height: 100px;
+  place-items: center;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 13px;
+}
+html[data-theme="dark"] .excalidraw-host { background: #fff; color-scheme: light; }

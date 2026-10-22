@@ -17,7 +17,8 @@
     "next": "^15.5.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "yjs": "^13.6.33"
+    "yjs": "^13.6.33",
+    "@excalidraw/excalidraw": "^0.18.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
