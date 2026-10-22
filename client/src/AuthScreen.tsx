@@ -8,16 +8,18 @@ import ThemeToggle from './ThemeToggle'
 import './App.css'
 
 export default function AuthScreen({ onAuthenticated, initialError }: { onAuthenticated: (user: User) => void; initialError: string }) {
-  const resetToken = new URLSearchParams(window.location.search).get('resetToken')
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(() => resetToken ? 'reset' : 'login')
+  const currentPath = window.location.pathname
+  const resetToken = currentPath === '/reset-password' ? new URLSearchParams(window.location.search).get('resetToken') : null
+  const initialMode: 'login' | 'register' | 'forgot' | 'reset' = currentPath === '/reset-password' ? 'reset' : currentPath === '/forgot-password' ? 'forgot' : 'login'
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(initialMode)
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordVisible, setPasswordVisible] = useState(false)
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
-  const [error, setError] = useState(initialError)
-  const [notice, setNotice] = useState('')
+  const [error, setError] = useState(initialError || (initialMode === 'reset' && !resetToken ? 'This password reset link is missing or invalid.' : ''))
+  const [notice, setNotice] = useState(new URLSearchParams(window.location.search).get('passwordReset') === 'success' ? 'Password reset successfully. Please sign in with your new password.' : '')
   const [resetUrl, setResetUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -60,9 +62,7 @@ export default function AuthScreen({ onAuthenticated, initialError }: { onAuthen
         setMode('login')
         setPassword('')
         setConfirmPassword('')
-        const url = new URL(window.location.href)
-        url.searchParams.delete('resetToken')
-        window.history.replaceState(null, '', url)
+        window.location.replace('/login?passwordReset=success')
         return
       }
       const currentUser = mode === 'register'
@@ -110,14 +110,14 @@ export default function AuthScreen({ onAuthenticated, initialError }: { onAuthen
             {mode !== 'reset' && <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} placeholder="you@example.com" /></label>}
             {mode !== 'forgot' && <label>Password<div className="password-input-wrap"><input type={passwordVisible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={mode === 'register' || mode === 'reset' ? 12 : 1} maxLength={72} placeholder={mode === 'register' || mode === 'reset' ? 'At least 12 characters' : 'Your password'} /><button type="button" className="password-toggle" aria-label={passwordVisible ? 'Hide password' : 'Show password'} aria-pressed={passwordVisible} onClick={() => setPasswordVisible((visible) => !visible)}>{passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label>}
             {(mode === 'register' || mode === 'reset') && <label>Confirm password<div className="password-input-wrap"><input type={confirmPasswordVisible ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={72} placeholder="Re-enter your password" aria-invalid={confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword)} /><button type="button" className="password-toggle" aria-label={confirmPasswordVisible ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={confirmPasswordVisible} onClick={() => setConfirmPasswordVisible((visible) => !visible)}>{confirmPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>{confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword) && <span className="auth-field-error" role="alert">Passwords do not match.</span>}</label>}
-            {mode === 'login' && <button type="button" className="auth-link" onClick={() => { window.history.pushState({ canvasLabAuthMode: 'forgot' }, '', window.location.href); setMode('forgot'); setError(''); setNotice(''); setResetUrl('') }}>Forgot password?</button>}
+            {mode === 'login' && <button type="button" className="auth-link" onClick={() => { window.history.pushState({ canvasLabAuthMode: 'forgot' }, '', '/forgot-password'); setMode('forgot'); setError(''); setNotice(''); setResetUrl('') }}>Forgot password?</button>}
             {notice && <div className="auth-notice" role="status">{notice}{resetUrl && <p className="auth-reset-link"><a href={resetUrl}>Open local password reset link</a></p>}</div>}
             {error && <div className="auth-error" role="alert">{error}</div>}
             <button className="auth-submit" type="submit" disabled={submitting}>
               {submitting ? 'Please wait…' : mode === 'login' ? 'Sign in to CanvasLab' : mode === 'register' ? 'Create your account' : mode === 'forgot' ? 'Send reset link' : 'Update password'}
               {submitting ? <LoaderCircle className="loading-icon" size={16} /> : <ArrowRight size={16} />}
             </button>
-            {(mode === 'forgot' || mode === 'reset') && <button type="button" className="auth-link auth-back-link" onClick={() => { if (mode === 'forgot' && window.history.state?.canvasLabAuthMode === 'forgot') { window.history.back(); return } setMode('login'); setError(''); setNotice(''); setResetUrl(''); setPassword(''); setConfirmPassword('') }}><ArrowLeft size={14} aria-hidden="true" /> Back to sign in</button>}
+            {(mode === 'forgot' || mode === 'reset') && <button type="button" className="auth-link auth-back-link" onClick={() => { if (mode === 'forgot') { window.history.replaceState(null, '', '/login'); setMode('login'); setError(''); setNotice(''); setResetUrl(''); setPassword(''); setConfirmPassword(''); return } window.location.assign('/login') }}><ArrowLeft size={14} aria-hidden="true" /> Back to sign in</button>}
           </form>
           <div className="auth-security">Your boards are private to your account.</div>
         </div>
