@@ -216,7 +216,11 @@
 .tool-button:disabled { cursor: not-allowed; opacity: 0.42; }
 .tool-selected { background: #e9ece3; color: #454f3b; }
 .tool-selected:hover { background: #e2e6da; }
-.canvas-live { position: absolute; z-index: 4; top: 65px; right: 22px; display: flex; align-items: center; gap: 6px; color: #777a73; font-size: 9px; }
+.canvas-live { position: absolute; z-index: 40; top: 14px; right: 16px; display: flex; align-items: flex-start; gap: 8px; max-width: min(300px, calc(100% - 32px)); padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); box-shadow: 0 2px 8px #24271c0c; font-size: 10px; }
+.canvas-live .live-indicator { flex: 0 0 6px; margin-top: 4px; }
+.canvas-live-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.canvas-live-copy strong { color: var(--ink); font-size: 10px; font-weight: 650; }
+.canvas-live-copy small { color: var(--muted); font-size: 9px; line-height: 1.35; }
 .live-indicator { width: 6px; height: 6px; }
 
 .note-card, .code-card { width: 220px; overflow: hidden; border: 1px solid #dfded3; border-radius: 7px; box-shadow: 0 8px 20px #35382c14, 0 1px 2px #35382c0d; }
@@ -276,7 +280,7 @@
   .board-canvas-wrap { min-height: 360px; }
   .canvas-toolbar { top: 12px; left: 11px; gap: 1px; padding: 4px; }
   .tool-button { width: 29px; height: 30px; }
-  .canvas-live { top: 53px; right: 12px; }
+  .canvas-live { top: 10px; right: 10px; }
   .canvas-hint { left: 12px; bottom: 13px; transform: none; font-size: 8px; }
   .minimap-preview { right: 10px; bottom: 41px; transform: scale(0.82); transform-origin: right bottom; }
   .workspace-footer { gap: 9px; padding: 0 10px; }
@@ -689,7 +693,7 @@
   }
   .canvas-toolbar::-webkit-scrollbar { display: none; }
   .tool-button { width: 31px; min-width: 31px; height: 32px; flex: 0 0 31px; }
-  .canvas-live { top: 67px; right: 10px; max-width: 112px; justify-content: flex-end; text-align: right; }
+  .canvas-live { top: 10px; right: 10px; max-width: min(250px, calc(100% - 20px)); }
   .drawing-options {
     top: 98px; left: 9px; right: 9px; max-width: none; width: auto;
     flex-wrap: wrap; gap: 8px; padding: 6px 8px;
@@ -718,7 +722,7 @@
   .board-heading p { font-size: 11px; }
   .board-canvas-wrap { min-height: 400px; }
   .canvas-toolbar { left: 6px; right: 6px; }
-  .canvas-live { right: 7px; max-width: 100px; font-size: 8px; }
+  .canvas-live { right: 7px; max-width: min(230px, calc(100% - 14px)); font-size: 8px; }
   .drawing-options, .selection-toolbar { left: 7px; right: 7px; }
   .workspace-footer { font-size: 8px; }
   .workspace-footer > span:nth-of-type(2), .footer-separator { display: none; }
