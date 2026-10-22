@@ -36,9 +36,9 @@ export default function App({ authMode }: { authMode?: 'login' | 'forgot' | 'res
   function handleAuthenticated(authenticatedUser: User) {
     setUser(authenticatedUser)
     // /login intentionally renders the sign-in form even when a session exists.
-    // Once sign-in succeeds, leave that explicit route so the workspace can render.
+    // After sign-in, show the board picker instead of opening the landing page or a board directly.
     if (authPath === '/login') {
-      window.location.replace('/')
+      window.location.replace('/boards')
     }
   }
 
