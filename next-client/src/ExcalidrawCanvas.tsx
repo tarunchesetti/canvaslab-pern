@@ -117,6 +117,9 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
         }
         metadata.set('legacyNodesMigrated', 'v1')
       })
+      // This was a local Yjs transaction, so the observer intentionally skips it.
+      // Apply the migrated scene once after writing it so legacy boards appear immediately.
+      applySharedScene()
     }
 
     void migrateLegacyBoard().catch((error: unknown) => {
@@ -125,7 +128,7 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
     })
 
     return () => { cancelled = true }
-  }, [document, ready])
+  }, [applySharedScene, document, ready])
 
   const applySharedScene = useCallback(() => {
     if (!document) return
@@ -163,7 +166,12 @@ export default function ExcalidrawCanvas({ document, canEdit }: ExcalidrawCanvas
 
     const sharedElements = document.getMap<string>('excalidraw:elements')
     const sharedFiles = document.getMap<string>('excalidraw:files')
-    const onSharedChange = () => applySharedScene()
+    // Local edits are already rendered by Excalidraw. Re-applying the shared scene
+    // for every local pointer update interrupts in-progress strokes and leaves a dot.
+    // Only apply changes that arrived from another Yjs client.
+    const onSharedChange = (_event: unknown, transaction: Yjs.Transaction) => {
+      if (!transaction.local) applySharedScene()
+    }
     sharedElements.observe(onSharedChange)
     sharedFiles.observe(onSharedChange)
     applySharedScene()
