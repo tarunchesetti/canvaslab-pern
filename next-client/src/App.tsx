@@ -30,7 +30,8 @@ export default function App({ authMode }: { authMode?: 'login' | 'forgot' | 'res
   }, [])
 
   const authPath = typeof window !== 'undefined' ? window.location.pathname : ''
-  const routeAuthMode = authMode ?? (authPath === '/reset-password' ? 'reset' : authPath === '/forgot-password' ? 'forgot' : authPath === '/login' ? 'login' : null)
+  const hasResetToken = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('resetToken')
+  const routeAuthMode = hasResetToken ? 'reset' : authMode ?? (authPath === '/reset-password' ? 'reset' : authPath === '/forgot-password' ? 'forgot' : authPath === '/login' ? 'login' : null)
   if (routeAuthMode) {
     return <AuthScreen onAuthenticated={setUser} initialError={authError} initialMode={routeAuthMode} />
   }
