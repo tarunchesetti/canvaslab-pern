@@ -1066,7 +1066,7 @@ function BoardCanvas({
           </div>}
 
           <div className="canvas-live"><span className={`live-indicator ${collaborationStatus === 'offline' ? 'status-offline' : ''}`} /><span>{collaborationStatus === 'connected' ? `${Math.max(collaborators.length, 1)} here now` : collaborationStatus === 'offline' ? 'Reconnecting' : 'Connecting'}</span></div>
-          {useExcalidraw && <Suspense fallback={<div className="excalidraw-loading">Opening drawing canvas…</div>}><ExcalidrawCanvas document={documentRef.current} canEdit={canInteract} /></Suspense>}
+          {useExcalidraw && <Suspense fallback={<div className="excalidraw-loading">Opening drawing canvas…</div>}><ExcalidrawCanvas document={collaborationReady ? documentRef.current : null} canEdit={canInteract} /></Suspense>}
           {!useExcalidraw && <ReactFlow
             onInit={(instance) => { screenToFlowPositionRef.current = instance.screenToFlowPosition }}
             nodes={nodes}
