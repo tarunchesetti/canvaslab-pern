@@ -4,6 +4,11 @@
   command = "npm run build"
   publish = ".next"
 
+# Explicitly enable Netlify's maintained Next.js adapter so App Router routes
+# are served by the runtime instead of falling through to Netlify's static 404.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 # Keep API requests on the Netlify origin so browser session cookies remain first-party.
 # Update the Render hostname here if Render assigns a different URL.
 [[redirects]]
